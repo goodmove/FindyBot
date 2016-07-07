@@ -1,7 +1,7 @@
 import requests
 
 def send_message(url, token, chat_id, text):
-    url = "{0}{1}{2}/sendMessage".format(url, token, method_name)
+    url = "{0}{1}/sendMessage".format(url, token)
     payload = {"chat_id" : chat_id, "text" : text}
     response = requests.get(url , params=payload)
     if int(response.status_code) == 200:
