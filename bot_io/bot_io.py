@@ -13,6 +13,16 @@ class Message(object):
 
     def __repr__(self):
         return "<Message> " + str({"id" : self.id, "usr_id" : self.usr_id, "chat_id" : self.chat_id, "text" : self.text, "type" : self.type})
+class EditedMessage(object):
+    def __init__(self, data):
+        self.id = data.get("id")
+        self.user = User(data.get("from", {}))
+        self.chat = Chat(data.get("chat", {}))
+        self.text = data.get("text")
+        # self.type = data.get("entities")
+
+    def __repr__(self):
+        return "<Message> " + str({"id" : self.id, "usr_id" : self.usr_id, "chat_id" : self.chat_id, "text" : self.text, "type" : self.type})
 
 class User(object):
     def __init__(self, data):
@@ -34,12 +44,14 @@ class Chat(object):
         return "<Chat> " + str({"id" : self.id, "type" : self.type})
 
 class Update(object):
+    types = ['message', 'edited_message', 'inline_query', 'chosen_inline_result', 'callback_query']
     def __init__(self, update_id, data):
         # Required
         self.update_id = int(update_id)
+        self.type = [t for t in self.types if data.get(t)][0]
         # Optionals
-        self.message = Message(data.get('message', {}))
-        self.edited_message = data.get('edited_message')
+        self.message = Message(data.get('message')) if data.get('message') else None
+        self.edited_message = EditedMessage(data.get('edited_message')) if data.get('edited_message') else None
         # self.inline_query = data.get('inline_query')
         # self.chosen_inline_result = data.get('chosen_inline_result')
         # self.callback_query = data.get('callback_query')
@@ -87,7 +99,7 @@ class Listener(object):
     def _run(self):
         self._parse_updates(self._get_updates())
 
-    def _get_updates(self, timeout=0, limit=100, network_delay=5.):
+    def _get_updates(self, timeout=0, limit=100, network_delay=3.2):
 
         payload = {'offset' : self.offset, 'timeout' : timeout}
 
@@ -96,30 +108,46 @@ class Listener(object):
 
         url = "{0}/getUpdates".format(self.url + self.token)
 
-        response = requests.get(url, params=payload, timeout=timeout+network_delay)
+        response = None
+        try:
+            response = requests.get(url, params=payload, timeout=timeout+network_delay)
+        except requests.exceptions.RequestException as err:
+            print("Error: ", err)
+        except requests.exceptions.HTTPError as err:
+            print("Error: ", err)
+        except requests.exceptions.ConnectionError as err:
+            print("Error: ConnectionError\n", err)
+        except requests.exceptions.Timeout as err:
+            print("Error: Timeout\n", err)
+        except:
+            print("Unexpecred error occured")
+
         if response:
             r_json = response.json()
             if (r_json["ok"]):
                 return [Update(r["update_id"], r) for r in r_json["result"]]
         else:
-            return []
+            return None
 
     def _parse_updates(self, updates):
         """
             updates - an array of Update objects
         """
-
+        if not updates:
+            return
         # logging here
         log_file = open("logs/requests_log.txt", "a")
 
         for upd in updates:
-            self.offset = upd.update_id + 1
+            # self.offset = upd.update_id + 1
             if upd.message:
-                if (self._dispatch(upd.message.user, upd.message.chat, upd.message.text)):
-                    pass
+                LOG_IO.log_requests(log_file, upd.type, upd.message.user, upd.message.chat, upd.message)
+                if self._dispatch(upd.message.user, upd.message.chat, upd.message.text):
+                    self.offset = upd.update_id + 1
+            elif upd.edited_message:
+                pass
+                # if self._dispatch(upd.edited_message.user, upd.edited_message.chat, "default"):
                     # self.offset = upd.update_id + 1
-            if upd.edited_message:
-                self._dispatch(upd.user, upd.chat, "default")
 
         log_file.close()
 
