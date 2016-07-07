@@ -63,46 +63,61 @@ class Listener(object):
         self.is_listening = False
         self._timer.stop()
     def _get_updates(self):
-        response = requests.get(self.url + self.token + "/getUpdates?offset=" + str(self.offset))
-        r_json = response.json()
-        if (r_json["ok"]):
+        try:
+            response = requests.get(self.url + self.token + "/getUpdates?offset=" + str(self.offset))
+        except ConnectionResetError:
+            print("The host cut the connection")
+        except ConnectionError:
+            print("Connection error occured")
+        except:
+            print("Unknown error occured")
+        else:
+            try:
+                r_json = response.json()
+            except:
+                print("Couldn't read json file")
+            else:
+                if (r_json["ok"]):
+                    # logging here
+                    log_file = open("logs/requests_log.txt", "a")
 
-            # logging here
-            log_file = open("logs/requests_log.txt", "a")
+                    for obj in r_json["result"]:
+                        update_id = obj["update_id"]
+                        if "message" in obj:
+                            message = obj["message"]
+                        else:
+                            message = obj["edited_message"]
+                        chat = Chat(message["chat"]["id"], message["chat"]["type"])
+                        user = User(
+                                    message["from"]["id"],
+                                    message["from"]["first_name"],
+                                    message["from"]["last_name"])
 
-            for obj in r_json["result"]:
-                update_id = obj["update_id"]
-                message = obj["message"]
-                chat = Chat(message["chat"]["id"], message["chat"]["type"])
-                user = User(
-                            message["from"]["id"],
-                            message["from"]["first_name"],
-                            message["from"]["last_name"])
+                        if "entities" in message:
+                            msg_type = message["entities"][0]["type"]
+                        else:
+                            msg_type = "text"
+                        msg = Message(
+                                    message["message_id"],
+                                    user.id,
+                                    chat.id,
+                                    message["text"],
+                                    msg_type) # id, usr_id, chat_id, text, type
 
-                if "entities" in message:
-                    msg_type = message["entities"][0]["type"]
-                else:
-                    msg_type = "text"
-                msg = Message(
-                            message["message_id"],
-                            user.id,
-                            chat.id,
-                            message["text"],
-                            msg_type) # id, usr_id, chat_id, text, type
+                        # log data
+                        LOG_IO.log_requests(log_file, user, chat, msg)
 
-                # log data
-                LOG_IO.log_requests(log_file, user, chat, msg)
+                        if message != None:
+                            self.offset = update_id + 1
+                            if msg.type == "bot_command":
+                                if (self._dispatch(user, chat, msg.text)):
+                                    pass
+                                    # self.offset = update_id + 1
+                            else:
+                                self._dispatch(user, chat, "default")
+                            # elif msg.type == "text":
 
-                self.offset = update_id + 1
-                if msg.type == "bot_command":
-                    if (self._dispatch(user, chat, msg.text)):
-                        pass
-                        # self.offset = update_id + 1
-                else:
-                    self._dispatch(user, chat, "default")
-                # elif msg.type == "text":
-
-            log_file.close()
+                    log_file.close()
 
     def _dispatch(self, user, chat, command):
         text = ""
@@ -117,3 +132,7 @@ class Listener(object):
             text =  "Sorry, I don't know how to handle those things yet.\n" + \
                     "Stay tuned for upcoming updates :)"
         return COMMANDS.send_message(self.url, self.token, chat.id, text)
+
+
+# TODO:
+# 1. Rewrite getUpdates so that it parsed different types of messages

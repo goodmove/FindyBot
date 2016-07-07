@@ -16,7 +16,7 @@ def init_bot(upd_interval):
     listener = Listener(url, api_token)
     listener.start(upd_interval)
 
-init_bot(2.0)
+init_bot(1.0)
 
 
 msg = ""
