@@ -2,9 +2,9 @@ from bot_io.bot_io import *
 
 
 # TODO:
-# implement Message(id, usr_id, chat_id, text, type), User(id, first_name, last_name), Chat(id, type) classes
+# [DONE] implement Message(id, usr_id, chat_id, text, type), User(id, first_name, last_name), Chat(id, type) classes
 # implement Listener and Sender classes
-# implement Timer class // import threading.Timer
+# [DONE] implement Timer class
 # implement Classificator
 
 listener = None
@@ -16,10 +16,10 @@ def init_bot(upd_interval):
     listener = Listener(url, api_token)
     listener.start(upd_interval)
 
-init_bot(3.0)
+init_bot(2.0)
 
 
 msg = ""
-while(msg != "stop"):
+while(msg.lower() != "stop"):
     msg = input()
 listener.stop()

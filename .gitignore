@@ -1,1 +1,4 @@
 __pycache__
+logs/**
+!logs/__init__.py
+!logs/log_io.py

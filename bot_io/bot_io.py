@@ -1,4 +1,5 @@
 import requests
+import logs.log_io as LOG_IO
 from . import COMMANDS
 from threading import Timer
 
@@ -10,7 +11,7 @@ class Message(object):
         self.text = text
         self.type = type
     def __repr__(self):
-        return "<Message>" + str({"id" : self.id, "usr_id" : self.usr_id, "chat_id" : self.chat_id, "text" : self.text, "type" : self.type})
+        return "<Message> " + str({"id" : self.id, "usr_id" : self.usr_id, "chat_id" : self.chat_id, "text" : self.text, "type" : self.type})
 
 class User(object):
     def __init__(self, id, first_name, last_name):
@@ -18,14 +19,14 @@ class User(object):
         self.first_name = first_name
         self.last_name = last_name
     def __repr__(self):
-        return "<User>" + str({"id" : self.id, "first_name" : self.first_name, "last_name" : self.last_name})
+        return "<User> " + str((self.id, self.first_name, self.last_name))
 
 class Chat(object):
     def __init__(self, id, type):
         self.id = id
         self.type = type
     def __repr__(self):
-        return "<Chat>" + str({"id" : self.id, "type" : self.type})
+        return "<Chat> " + str({"id" : self.id, "type" : self.type})
 
 class cTimer(object):
     def __init__(self, interval, function, *args):
@@ -65,6 +66,10 @@ class Listener(object):
         response = requests.get(self.url + self.token + "/getUpdates?offset=" + str(self.offset))
         r_json = response.json()
         if (r_json["ok"]):
+
+            # logging here
+            log_file = open("logs/requests_log.txt", "a")
+
             for obj in r_json["result"]:
                 update_id = obj["update_id"]
                 message = obj["message"]
@@ -85,19 +90,20 @@ class Listener(object):
                             message["text"],
                             msg_type) # id, usr_id, chat_id, text, type
 
-                print(chat)
-                print(user)
-                print(msg)
-                print("")
+                # log data
+                LOG_IO.log_requests(log_file, user, chat, msg)
 
+                self.offset = update_id + 1
                 if msg.type == "bot_command":
                     if (self._dispatch(user, chat, msg.text)):
-                        self.offset = update_id + 1
+                        pass
+                        # self.offset = update_id + 1
+                # elif msg.type == "text":
 
-
+            log_file.close()
 
     def _dispatch(self, user, chat, command):
         if command == "/help":
             text =  "Hi! I'm FindyBot - a bot you will soon use to find people's profiles on VK, Facebook, etc. with just a photo of them in your hands\n" + \
-                    "For now you can only call for /help, if you wish :)"
+                    "For now, you can only call for /help, if you want :)"
             return COMMANDS.send_message(self.url, self.token, chat.id, text)
