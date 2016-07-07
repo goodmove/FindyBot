@@ -98,12 +98,22 @@ class Listener(object):
                     if (self._dispatch(user, chat, msg.text)):
                         pass
                         # self.offset = update_id + 1
+                else:
+                    self._dispatch(user, chat, "default")
                 # elif msg.type == "text":
 
             log_file.close()
 
     def _dispatch(self, user, chat, command):
-        if command == "/help":
-            text =  "Hi! I'm FindyBot - a bot you will soon use to find people's profiles on VK, Facebook, etc. with just a photo of them in your hands\n" + \
-                    "For now, you can only call for /help, if you want :)"
-            return COMMANDS.send_message(self.url, self.token, chat.id, text)
+        text = ""
+        if  command == "/start":
+            text =  "Hi! I'm FindyBot - a bot you will soon use to find people's profiles on VK, Facebook, etc. with just a photo of theirs in your hands!\n" + \
+                    "For now, you can only call for /help, if you need some :)"
+        elif command == "/help":
+            text =  "I'm still being developed, so I can't do very much now.\n" + \
+                    "Stay tuned for upcoming updates.\n" + \
+                    "Available commands:\n/help"
+        else:
+            text =  "Sorry, I don't know how to handle those things yet.\n" + \
+                    "Stay tuned for upcoming updates :)"
+        return COMMANDS.send_message(self.url, self.token, chat.id, text)
