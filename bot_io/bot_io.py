@@ -4,29 +4,45 @@ from . import COMMANDS
 from threading import Timer
 
 class Message(object):
-    def __init__(self, id, usr_id, chat_id, text, type):
-        self.id = id
-        self.usr_id = usr_id
-        self.chat_id = chat_id
-        self.text = text
-        self.type = type
+    def __init__(self, data):
+        self.id = data.get("id")
+        self.user = User(data.get("from", {}))
+        self.chat = Chat(data.get("chat", {}))
+        self.text = data.get("text")
+        # self.type = data.get("entities")
+
     def __repr__(self):
         return "<Message> " + str({"id" : self.id, "usr_id" : self.usr_id, "chat_id" : self.chat_id, "text" : self.text, "type" : self.type})
 
 class User(object):
-    def __init__(self, id, first_name, last_name):
-        self.id = id
-        self.first_name = first_name
-        self.last_name = last_name
+    def __init__(self, data):
+        self.id = data.get("id")
+        self.first_name = data.get("first_name")
+        self.last_name = data.get("last_name")
+
     def __repr__(self):
         return "<User> " + str((self.id, self.first_name, self.last_name))
 
 class Chat(object):
-    def __init__(self, id, type):
-        self.id = id
-        self.type = type
+    def __init__(self, data):
+        self.id = data.get("id")
+        self.first_name = data.get("first_name")
+        self.last_name = data.get("last_name")
+        self.type = data.get("type")
+
     def __repr__(self):
         return "<Chat> " + str({"id" : self.id, "type" : self.type})
+
+class Update(object):
+    def __init__(self, update_id, data):
+        # Required
+        self.update_id = int(update_id)
+        # Optionals
+        self.message = Message(data.get('message', {}))
+        self.edited_message = data.get('edited_message')
+        # self.inline_query = data.get('inline_query')
+        # self.chosen_inline_result = data.get('chosen_inline_result')
+        # self.callback_query = data.get('callback_query')
 
 class cTimer(object):
     def __init__(self, interval, function, *args):
@@ -36,15 +52,18 @@ class cTimer(object):
         self.args       = args
         self.is_running = False
         self.start()
+
     def _run(self):
         self.is_running = False
         self.function(*self.args)
         self.start()
+
     def start(self):
         if (not self.is_running):
             self._timer = Timer(self.interval, self._run)
             self._timer.start()
             self.is_running = True
+
     def stop(self):
         self._timer.cancel()
         self.is_running = False
@@ -56,68 +75,53 @@ class Listener(object):
         self.url = url
         self.token = token
         self.offset = 0
+
     def start(self, interval):
-        self._timer = cTimer(interval, self._get_updates)
+        self._timer = cTimer(interval, self._run)
         self.is_listening = True
+
     def stop(self):
         self.is_listening = False
         self._timer.stop()
-    def _get_updates(self):
-        try:
-            response = requests.get(self.url + self.token + "/getUpdates?offset=" + str(self.offset))
-        except ConnectionResetError:
-            print("The host cut the connection")
-        except ConnectionError:
-            print("Connection error occured")
-        except:
-            print("Unknown error occured")
+
+    def _run(self):
+        self._parse_updates(self._get_updates())
+
+    def _get_updates(self, timeout=0, limit=100, network_delay=5.):
+
+        payload = {'offset' : self.offset, 'timeout' : timeout}
+
+        if limit:
+            payload['limit'] = limit
+
+        url = "{0}/getUpdates".format(self.url + self.token)
+
+        response = requests.get(url, params=payload, timeout=timeout+network_delay)
+        if response:
+            r_json = response.json()
+            if (r_json["ok"]):
+                return [Update(r["update_id"], r) for r in r_json["result"]]
         else:
-            try:
-                r_json = response.json()
-            except:
-                print("Couldn't read json file")
-            else:
-                if (r_json["ok"]):
-                    # logging here
-                    log_file = open("logs/requests_log.txt", "a")
+            return []
 
-                    for obj in r_json["result"]:
-                        update_id = obj["update_id"]
-                        if "message" in obj:
-                            message = obj["message"]
-                        else:
-                            message = obj["edited_message"]
-                        chat = Chat(message["chat"]["id"], message["chat"]["type"])
-                        user = User(
-                                    message["from"]["id"],
-                                    message["from"]["first_name"],
-                                    message["from"]["last_name"])
+    def _parse_updates(self, updates):
+        """
+            updates - an array of Update objects
+        """
 
-                        if "entities" in message:
-                            msg_type = message["entities"][0]["type"]
-                        else:
-                            msg_type = "text"
-                        msg = Message(
-                                    message["message_id"],
-                                    user.id,
-                                    chat.id,
-                                    message["text"],
-                                    msg_type) # id, usr_id, chat_id, text, type
+        # logging here
+        log_file = open("logs/requests_log.txt", "a")
 
-                        # log data
-                        LOG_IO.log_requests(log_file, user, chat, msg)
+        for upd in updates:
+            self.offset = upd.update_id + 1
+            if upd.message:
+                if (self._dispatch(upd.message.user, upd.message.chat, upd.message.text)):
+                    pass
+                    # self.offset = upd.update_id + 1
+            if upd.edited_message:
+                self._dispatch(upd.user, upd.chat, "default")
 
-                        if message != None:
-                            self.offset = update_id + 1
-                            if msg.type == "bot_command":
-                                if (self._dispatch(user, chat, msg.text)):
-                                    pass
-                                    # self.offset = update_id + 1
-                            else:
-                                self._dispatch(user, chat, "default")
-                            # elif msg.type == "text":
-
-                    log_file.close()
+        log_file.close()
 
     def _dispatch(self, user, chat, command):
         text = ""
@@ -132,7 +136,3 @@ class Listener(object):
             text =  "Sorry, I don't know how to handle those things yet.\n" + \
                     "Stay tuned for upcoming updates :)"
         return COMMANDS.send_message(self.url, self.token, chat.id, text)
-
-
-# TODO:
-# 1. Rewrite getUpdates so that it parsed different types of messages
