@@ -19,7 +19,7 @@ def init_bot(upd_interval):
 init_bot(1.0)
 
 
-msg = ""
-while(msg.lower() != "stop"):
-    msg = input()
-listener.stop()
+# msg = ""
+# while(msg.lower() != "stop"):
+#   msg = input()
+# listener.stop()
