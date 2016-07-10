@@ -3,3 +3,5 @@ logs/**
 !logs/__init__.py
 !logs/log_io.py
 dev
+controls.txt
+main_copy.py

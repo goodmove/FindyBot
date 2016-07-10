@@ -1,5 +1,5 @@
 from bot_io.bot_io import *
-
+from time import sleep
 
 # TODO:
 # [DONE] implement Message(id, usr_id, chat_id, text, type), User(id, first_name, last_name), Chat(id, type) classes
@@ -16,10 +16,9 @@ def init_bot(upd_interval):
     listener = Listener(url, api_token)
     listener.start(upd_interval)
 
+
 init_bot(1.0)
 
 
-# msg = ""
-# while(msg.lower() != "stop"):
-#   msg = input()
-# listener.stop()
+while listener.is_listening:
+    sleep(0.05)

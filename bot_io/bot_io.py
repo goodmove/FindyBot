@@ -1,60 +1,8 @@
 import requests
 import logs.log_io as LOG_IO
-from . import COMMANDS
+from . import commands
 from threading import Timer
-
-class Message(object):
-    def __init__(self, data):
-        self.id = data.get("id")
-        self.user = User(data.get("from", {}))
-        self.chat = Chat(data.get("chat", {}))
-        self.text = data.get("text")
-        # self.type = data.get("entities")
-
-    def __repr__(self):
-        return "<Message> " + str({"id" : self.id, "usr_id" : self.usr_id, "chat_id" : self.chat_id, "text" : self.text, "type" : self.type})
-class EditedMessage(object):
-    def __init__(self, data):
-        self.id = data.get("id")
-        self.user = User(data.get("from", {}))
-        self.chat = Chat(data.get("chat", {}))
-        self.text = data.get("text")
-        # self.type = data.get("entities")
-
-    def __repr__(self):
-        return "<Message> " + str({"id" : self.id, "usr_id" : self.usr_id, "chat_id" : self.chat_id, "text" : self.text, "type" : self.type})
-
-class User(object):
-    def __init__(self, data):
-        self.id = data.get("id")
-        self.first_name = data.get("first_name")
-        self.last_name = data.get("last_name")
-
-    def __repr__(self):
-        return "<User> " + str((self.id, self.first_name, self.last_name))
-
-class Chat(object):
-    def __init__(self, data):
-        self.id = data.get("id")
-        self.first_name = data.get("first_name")
-        self.last_name = data.get("last_name")
-        self.type = data.get("type")
-
-    def __repr__(self):
-        return "<Chat> " + str({"id" : self.id, "type" : self.type})
-
-class Update(object):
-    types = ['message', 'edited_message', 'inline_query', 'chosen_inline_result', 'callback_query']
-    def __init__(self, update_id, data):
-        # Required
-        self.update_id = int(update_id)
-        self.type = [t for t in self.types if data.get(t)][0]
-        # Optionals
-        self.message = Message(data.get('message')) if data.get('message') else None
-        self.edited_message = EditedMessage(data.get('edited_message')) if data.get('edited_message') else None
-        # self.inline_query = data.get('inline_query')
-        # self.chosen_inline_result = data.get('chosen_inline_result')
-        # self.callback_query = data.get('callback_query')
+from .types import (Update, Message, EditedMessage, User, Chat, Photo)
 
 class cTimer(object):
     def __init__(self, interval, function, *args):
@@ -99,7 +47,7 @@ class Listener(object):
     def _run(self):
         self._parse_updates(self._get_updates())
 
-    def _get_updates(self, timeout=0, limit=100, network_delay=3.2):
+    def _get_updates(self, timeout=3.2, limit=100, network_delay=5):
 
         payload = {'offset' : self.offset, 'timeout' : timeout}
 
@@ -163,4 +111,4 @@ class Listener(object):
         else:
             text =  "Sorry, I don't know how to handle those things yet.\n" + \
                     "Stay tuned for upcoming updates :)"
-        return COMMANDS.send_message(self.url, self.token, chat.id, text)
+        return commands.send_message(self.url, self.token, chat.id, text)
