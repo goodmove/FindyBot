@@ -1,5 +1,6 @@
 #coding utf8
 import requests
+import getpass
 from html.parser import HTMLParser
 
 class FormParser(HTMLParser):
@@ -36,10 +37,10 @@ class FormParser(HTMLParser):
             if attrs['type'] == 'submit':
                 self.params['submit_allow_access'] = True
         elif tag == 'div' and 'class' in attrs:
-            if attrs['class'] = 'near_btn':
+            if attrs['class'] == 'near_btn':
                 self.in_denial = True
         elif tag == 'a' and 'href' in attrs and self.in_denial:
-            self.denial_url = attr['href']
+            self.denial_url = attrs['href']
 
     def handle_endtag(self, tag):
         tag = tag.lower()
@@ -80,10 +81,6 @@ class VKAuth(object):
         if security_code != None and two_factor_auth == False:
             raise RuntimeError('Security code provided for non-two-factor authorization')
 
-    def print_cookies(self):
-        print(self.session.cookies)
-
-
     def authorize(self):
 
         api_auth_url = 'https://oauth.vk.com/authorize'
@@ -96,9 +93,7 @@ class VKAuth(object):
         auth_url_template = '{0}?client_id={1}&scope={2}&redirect_uri={3}&display={4}&v={5}&response_type=token'
         auth_url = auth_url_template.format(api_auth_url, app_id, ','.join(permissions), redirect_uri, display, api_version)
 
-        self.print_cookies()
         self.response = self.session.get(auth_url)
-        self.print_cookies()
 
         #look for <form> element in response html and parse it
         if not self._parse_form():
@@ -107,7 +102,6 @@ class VKAuth(object):
             # try to log in with email and password (stored or expected to be entered)
             while not self._log_in():
                 pass;
-            self.print_cookies()
 
             # handling two-factor authentication
             # expecting a security code to enter here
@@ -156,7 +150,7 @@ class VKAuth(object):
         if self.pswd == None:
             self.pswd = ''
             while self.pswd.strip() == '':
-                self.pswd = input('Enter the password: ')
+                self.pswd = getpass.getpass('Enter the password: ')
 
         self._submit_form({'email': self.email, 'pass': self.pswd})
         if not self._parse_form():
