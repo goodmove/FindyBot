@@ -4,9 +4,9 @@ import os
 import os.path
 
 class vkapi(object):
-	def __init__(self, app_id, app_secret, api_v, perms = ['friends']):
+	def __init__(self, app_id, app_secure, api_v = 5.52, perms = ['friends']):
 		self.app_id 	= app_id
-		self.app_secret = app_secret
+		self.app_secure = app_secure
 		self.api_v 		= api_v
 		self.token 		= None
 		self.sess		= None
@@ -15,8 +15,8 @@ class vkapi(object):
 
 	def auth(self):
 		self.sess = vkauth.VKAuth(self.perms, self.app_id, self.api_v)
-		self.sess.authorize()
-		self.token = self.sess.access_token
+		self.sess.auth()
+		self.token = self.sess.get_token()
 		f = open('token', 'w')
 		f.write(self.token)
 		f.close()
@@ -30,7 +30,6 @@ class vkapi(object):
 		r = requests.get('https://api.vk.com/method/'+method+'?', params = params)
 		j = r.json()
 		if 'error' in j:
-			print('request error')
 			return None
 		return j
 
