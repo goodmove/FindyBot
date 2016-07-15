@@ -1,4 +1,4 @@
-from third_party.VKAuth import vk_auth as vkauth
+from third_party.VKAuth import vkauth
 import requests
 import os
 import os.path
@@ -11,11 +11,7 @@ class vkapi(object):
 		self.token 		= None
 		self.sess		= None
 		self.perms 		= perms
-		if os.path.isfile('token'):
-			f = open('token', 'r')
-			self.token = f.read()
-		else:
-			print('the "token" file is missing')
+		self.updateToken()
 
 	def auth(self):
 		self.sess = vkauth.VKAuth(self.perms, self.app_id, self.api_v)
@@ -38,9 +34,13 @@ class vkapi(object):
 			return None
 		return j
 
-	def clear_token():
+	def updateToken(self):
+		if os.path.isfile('token'):
+			f = open('token', 'r')
+			self.token = f.read()
+		else:
+			print('the "token" file is missing')
+
+	def clearToken():
 		self.token = None
 		os.remove('token')
-
-	def close(self):
-		self.sess.close()
