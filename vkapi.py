@@ -20,7 +20,7 @@ class vkapi(object):
 		f = open('token', 'w')
 		f.write(self.token)
 		f.close()
-	
+
 	def getRequest(self, method, params):
 		if self.token is None:
 			self.auth()
