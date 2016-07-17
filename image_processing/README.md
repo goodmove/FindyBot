@@ -11,11 +11,10 @@ impros.py implements ImageProcessor class for computer vision, namely:
 Usage of Anaconda package is highly recommended as it covers most of the dependencies
 
 Firstly, install all the **dependencies**:
-1. `scikit-image` (should go along with Anaconda)
-2. opencv lib for python (use this for Anaconda: `conda install -c menpo opencv3=3.1.0`)
-3. numpy
 
-Go ahead to **Usage** section to find more
+1. `scikit-image` (should go along with Anaconda)
+2. `opencv` lib for python (use this for Anaconda: `conda install -c menpo opencv3=3.1.0`)
+3. `numpy`
 
 ## Usage
 
