@@ -13,9 +13,10 @@ class PhotoDownloader(object):
 			self.updateIds(ids_file)
 
 		self.updateAccountData(account_file)
-		
-		self.api = vkapi.vkapi(	self.account_data['app_id'], 
-								self.account_data['app_secure'], '5.52', 
+
+		self.api = vkapi.vkapi(	self.account_data['app_id'],
+								self.account_data['app_secure'],
+								'5.52', 
 								perms = ['friends', 'photos'])
 
 	def updateIds(self, file_name):
@@ -30,7 +31,7 @@ class PhotoDownloader(object):
 		# parse account data to dictionary
 		self.account_data = dict([field.split(':') for field in data.split(',')])
 
-	def downloadAll(self, batch_size = 5, thread_count = 10, 
+	def downloadAll(self, batch_size = 5, thread_count = 10,
 					path = 'photos/', file_format = '.jpg', field='photo_50'):
 		id_batch = []
 		for id in self.ids:
@@ -45,7 +46,7 @@ class PhotoDownloader(object):
 				continue
 			# prepare payload for request
 			payload = {
-				'user_ids':str([int(i) for i in id_batch]).strip('[]'), 
+				'user_ids':str([int(i) for i in id_batch]).strip('[]'),
 				'fields':field
 			}
 			# don't need ids in id_batch anymore
