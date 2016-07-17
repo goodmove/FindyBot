@@ -29,9 +29,38 @@ class vkapi(object):
 		params['access_token'] = self.token
 		r = requests.get('https://api.vk.com/method/'+method+'?', params = params)
 		j = r.json()
-		if 'error' in j:
-			return None
 		return j
+
+	def DFSFriends(self, id, ids, depth, file_name=None):
+	"""
+		finds recursively friends using depth-first algorithm
+		@args
+			id – (int). id of user whose friends to search
+			ids – ([int]). found friends' ids
+			depth – (int). How deep in friends to search (e.g. for friends of friends depth = 2)
+	"""
+		count = 0
+		_DFSFriends(id, ids, depth)
+		print('\n')
+		if not file_name is None:
+			f = open(file_name, 'w')
+			f.write(str(ids).strip('[]'))
+			f.close()
+
+	def _DFSFriends(self, id, ids, depth):
+		if depth <= 0: return
+		global count
+		ids.append(id)
+		payload = {'user_id':id}
+		request = api.getRequest('friends.get', payload)
+		if 'error' in request: return
+		friends = request['response']
+		for friend in friends: 
+			if not friend in ids:
+				count += 1
+				# uncomment to see how many friends found
+				# print('\rfound friends: {0}'.format(count), end='')
+				get_friend_ids(api, friend, ids, depth-1)
 
 	def updateToken(self):
 		if os.path.isfile('token'):
