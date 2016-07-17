@@ -1,3 +1,4 @@
+from skimage import transform
 import numpy as np
 import cv2
 import os
@@ -15,7 +16,7 @@ class ImageProcessor(object):
         self.nose_clf = nose_clf
         self.mouth_clf = mouth_clf
 
-    def propagate_images(self):
+    def propagate_images(self, dsize=None, clean=False):
         """
             goes over each directory in self.img_dir_list,
             finds images inside, looks for faces and crops them,
@@ -30,10 +31,13 @@ class ImageProcessor(object):
                 for fn in os.listdir('./data/' + dir):
                     path = './data/' + dir + '/' + fn
                     if os.path.isfile(path):
-                        self.detect_face(path, crop=True)
+                        if clean and '_' in fn:
+                            os.remove(path)
+                        else:
+                            self.detect_face(path, crop=True, resize=True, dsize=dsize)
 
 
-    def detect_face(self, path, crop=False):
+    def detect_face(self, path, crop=False, resize=False, dsize=None):
         """
             @args:
                 path = (str); relative path to the image
@@ -53,8 +57,7 @@ class ImageProcessor(object):
 
         # if no faces found or there are too many, remove the file
         if len(faces) != 1:
-            print('Either no or too many faces found')
-            os.remove(open_path_tmp.format(dir, fn))
+            os.remove(path)
             return tuple();
 
         if crop:
@@ -63,7 +66,7 @@ class ImageProcessor(object):
             _fn =  _path[-1].split('.')[0]
             _path = '/'.join(_path[:-1])
 
-            self.crop(img, faces[0], _path, _fn)
+            self.crop(img, faces[0], _path, _fn, resize=resize, dsize=dsize)
 
         return faces[0]
 
@@ -77,10 +80,9 @@ class ImageProcessor(object):
         upper_half = img[:2*img.shape[1]/3, 0:img.shape[0]]
         eyes = eye_cascade.detectMultiScale(upper_half)
 
-        for (x, y, w, h) in eyes:
-            cv2.rectangle(upper_half,(x,y),(x+w,y+h),(0,255,0),2)
-
         if visualize:
+            for (x, y, w, h) in eyes:
+                cv2.rectangle(upper_half,(x,y),(x+w,y+h),(0,255,0),2)
             cv2.imshow('upper_half', upper_half)
             cv2.waitKey(0)
             cv2.destroyAllWindows()
@@ -98,10 +100,9 @@ class ImageProcessor(object):
 
         smiles = smile_cascade.detectMultiScale(img, 1.4, 6)
 
-        for (x, y, w, h) in smiles:
-            cv2.rectangle(img,(x,y),(x+w,y+h),(0,255,0),2)
-
         if visualize:
+            for (x, y, w, h) in smiles:
+                cv2.rectangle(img,(x,y),(x+w,y+h),(0,255,0),2)
             cv2.imshow('img', img)
             cv2.waitKey(0)
             cv2.destroyAllWindows()
@@ -121,17 +122,16 @@ class ImageProcessor(object):
         middle = img[height*(2/5) : height*(4/5), width/4:width*(3/4)]
         noses = noise_cascade.detectMultiScale(middle)
 
-        for (x, y, w, h) in noses:
-            cv2.rectangle(middle,(x,y),(x+w,y+h),(0,255,0),2)
-
         if visualize:
+            for (x, y, w, h) in noses:
+                cv2.rectangle(middle,(x,y),(x+w,y+h),(0,255,0),2)
             cv2.imshow('middle', middle)
             cv2.waitKey(0)
             cv2.destroyAllWindows
 
         return noses
 
-    def crop(self, img, dims, path, fn, full_path=None):
+    def crop(self, img, dims, path, fn, full_path=None, resize=False, dsize=None):
         """
             @args:
                 img - (numpy.array); image to crop from
@@ -139,11 +139,18 @@ class ImageProcessor(object):
                 path - (str); path name to save into
                 fn - (str); filename to save with
                 full_path - (str); if set, overrides path and fn entirely
+                resize - (bool); True if cropped `img` needs to be resized
+                dsize - (tuple); dimensions to resize to 
         """
         fmt = 'jpg'
         x, y, w, h = dims
 
+        cropped = img[y:y+h, x:x+w]
+
+        if resize and dsize != None:
+            cropped = transform.resize(cropped, dsize, preserve_range=True)
+
         if not full_path:
-            cv2.imwrite('{0}/{1}_.{2}'.format(path, fn, fmt), img[y:y+h, x:x+w])
+            cv2.imwrite('{0}/{1}_.{2}'.format(path, fn, fmt), cropped)
         else:
-            cv2.imwrite(full_path, img[y:y+h, x:x+w])
+            cv2.imwrite(full_path, cropped)

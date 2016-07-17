@@ -16,7 +16,7 @@ class PhotoDownloader(object):
 
 		self.api = vkapi.vkapi(	self.account_data['app_id'],
 								self.account_data['app_secure'],
-								'5.52', 
+								'5.52',
 								perms = ['friends', 'photos'])
 
 	def updateIds(self, file_name):
@@ -31,13 +31,13 @@ class PhotoDownloader(object):
 		# parse account data to dictionary
 		self.account_data = dict([field.split(':') for field in data.split(',')])
 
-	def downloadAll(self, batch_size = 5, thread_count = 10,
+	def downloadAll(self, id_batch = [], batch_size = 5, thread_count = 10,
 					path = 'photos/', file_format = '.jpg', field='photo_50'):
-		id_batch = []
 		for id in self.ids:
 			photo_path = path + id
 			# if file with this name already exists skip it
 			if not os.path.exists(photo_path):
+				print('here')
 				os.makedirs(photo_path)
 			else: continue
 			# update batch of ids
@@ -60,7 +60,7 @@ class PhotoDownloader(object):
 
 		# if some ids left download them
 		if id_batch:
-			self.downloadAll(self.api, id_batch, batch_size=len(id_batch), field=field)
+			self.downloadAll(id_batch, batch_size=len(id_batch), field=field)
 
 	def _fast_download(self, response, path, file_format, thread_count, field):
 		for r in response:

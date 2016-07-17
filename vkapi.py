@@ -20,7 +20,7 @@ class vkapi(object):
 		f = open('token', 'w')
 		f.write(self.token)
 		f.close()
-	
+
 	def getRequest(self, method, params):
 		if self.token is None:
 			self.auth()
@@ -30,6 +30,7 @@ class vkapi(object):
 		r = requests.get('https://api.vk.com/method/'+method+'?', params = params)
 		j = r.json()
 		if 'error' in j:
+			print(j['error'])
 			return None
 		return j
 
