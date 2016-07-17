@@ -31,7 +31,7 @@ class vkapi(object):
 		j = r.json()
 		return j
 
-	def DFSFriends(self, id, ids, depth, file_name=None):
+	def DFSFriends(self, id, ids=[], depth=3, file_name=None):
 	"""
 		finds recursively friends using depth-first algorithm
 		@args

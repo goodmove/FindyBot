@@ -24,9 +24,12 @@ class PhotoDownloader(object):
 		@args
 			file_name – (str). Name of file to get ids from
 	"""
-		f = open(file_name, 'r')
-		self.ids = f.read().strip('[]').split(', ')
-		f.close()
+		if os.path.isfile(file_name):
+			f = open(file_name, 'r')
+			self.ids = f.read().strip('[]').split(', ')
+			f.close()
+		else:
+			self.api.DFSFriends(id=self.account_data['id'], ids=self.ids, file_name='ids')
 
 	def updateAccountData(self, file_name):
 	"""
