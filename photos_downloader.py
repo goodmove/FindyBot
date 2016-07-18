@@ -88,8 +88,9 @@ class PhotoDownloader(object):
 			if 'error' in request: continue
 			response = request['response']
 			# create and start threads for downloading photos
-			index = 0
-			for item in response['items']:
+			all_photos = response[1:]
+			photos = [next(s for s in p['sizes'] if s['type'] is photo_type) for p in all_photos]
+			for index, item in enumerate(photos):
 				size = str(item['width']) + 'x' + str(item['height'])
 				photo_name = folder_path + '/' + str(index) + photo_type + size + file_format
 				if os.path.isfile(photo_name): continue
@@ -103,6 +104,7 @@ class PhotoDownloader(object):
 				except: print('couldn\'t start a new thread')
 				print('\rthread count: {0}'.format(thr.active_count()), end='')
 				index += 1
+			return
 
 def download(link, name):
 	"""
