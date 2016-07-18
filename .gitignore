@@ -6,6 +6,7 @@ dev
 controls.txt
 main_copy.py
 _test
+test.py
 photos
 account
 token

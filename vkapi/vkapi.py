@@ -44,44 +44,28 @@ class vkapi(object):
 				file_name – (str). Name of a file to write found ids in
 				algorithm – (str). 'bfs' or 'dfs'
 		"""
-		graph = {}
-		self._count = 0
-		self.build_friends_graph(id, graph, depth)
-		print(graph)
-		return
-		visited = set()
-		if algorithm.lower() is 'bfs':
-			queue = [id]
-			while queue:
-				vertex = queue.pop()
-				if vertex not in visited:
-					visited.add(vertex)
-					queue.extend(graph[vertex] - visited)
-		elif algorithm.lower() is 'dfs':
-			stack = [id]
-			while stack:
-				vertex = stack.pop(0)
-				if vertex not in visited:
-					visited.add(vertex)
-					stack.extend(graph[vertex] - visited)
-
-		else:
-			print('error: {0} bad name of algorithm'.format(algorithm))
-		print('\ndone')
 		f = open(file_name, 'w')
-		f.write(str(visited).strip('[]'))
+		if algorithm.lower() == 'bfs':
+			self._bdfsr([id], func=lambda x: f.write('{0}, '.format(x)), first_pos=-1)
+		elif algorithm.lower() == 'dfs':
+			self._bdfsr([id], func=lambda x: f.write('{0}, '.format(x)), first_pos=0)
+		else: print('error: {0} bad name of algorithm'.format(algorithm))
+		print('\ndone')
 		f.close()
 
-	def build_friends_graph(self, id, graph, depth):
-		if depth <= 0: return
-		request = self.getRequest('friends.get', {'user_id':id})
-		if 'error' in request: return
-		friends = request['response']
-		graph[id] = set(friends)
-		for friend in friends:
-			self._count += 1
-			print('\rfrinds found: {0}'.format(self._count), end='')
-			self.build_friends_graph(friend, graph, depth-1)
+	def _bdfsr(self, q, visited=set(), d=3, func=print, first_pos=-1):
+		if d <= 0: return visited
+		new = []
+		while q:
+			v = q.pop(first_pos)
+			if v in visited: continue
+			visited.add(v)
+			func(v)
+			request = self.getRequest('friends.get', {'user_id':v})
+			friends = request.get('response')
+			if friends is None: continue
+			new.extend(set(friends) - visited)
+		return self._bfsr(new, visited, d-1, func, first_pos)
 
 	def updateToken(self):
 		if os.path.isfile('token'):

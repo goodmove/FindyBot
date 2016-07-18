@@ -9,14 +9,14 @@ class PhotoDownloader(object):
 		self.account_data 	= None
 		self.ids 		 	= []
 
-		self.updateIds(ids_file)
 
 		self.updateAccountData(account_file)
-
+		self.user_id = int(self.account_data['id'])
 		self.api = vkapi.vkapi(	self.account_data['app_id'],
 								self.account_data['app_secure'],
 								'5.52', 
 								perms = ['friends', 'photos'])
+		self.updateIds(ids_file)
 
 	def updateIds(self, file_name):
 		"""
@@ -29,7 +29,8 @@ class PhotoDownloader(object):
 			self.ids = f.read().strip('[]').split(', ')
 			f.close()
 		else:
-			self.api.DFSFriends(id=self.account_data['id'], ids=self.ids, file_name='ids')
+			# print(self.user_id)
+			self.api.findFriends(self.user_id, file_name=file_name)
 
 	def updateAccountData(self, file_name):
 		"""
