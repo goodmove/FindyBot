@@ -24,21 +24,25 @@ class vkapi(object):
 	def getRequest(self, method, params):
 		if self.token is None:
 			self.auth()
-			return self.getRequest(method, params)
 
 		params['access_token'] = self.token
 		r = requests.get('https://api.vk.com/method/'+method+'?', params = params)
 		j = r.json()
+		if 'error' in j:
+			print('error: ' + j['error']['error_msg'])
+			if 'User authorization failed' in j['error']['error_msg']:
+				self.auth()
+				return self.getRequest(method, params)
 		return j
 
 	def DFSFriends(self, id, ids=[], depth=3, file_name=None):
-	"""
-		finds recursively friends using depth-first algorithm
-		@args
-			id – (int). id of user whose friends to search
-			ids – ([int]). found friends' ids
-			depth – (int). How deep in friends to search (e.g. for friends of friends depth = 2)
-	"""
+		"""
+			finds recursively friends using depth-first algorithm
+			@args
+				id – (int). id of user whose friends to search
+				ids – ([int]). found friends' ids
+				depth – (int). How deep in friends to search (e.g. for friends of friends depth = 2)
+		"""
 		count = 0
 		_DFSFriends(id, ids, depth)
 		print('\n')
