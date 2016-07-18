@@ -5,6 +5,7 @@
 impros.py implements ImageProcessor class for computer vision, namely:
 - face detection and localization
 - significant facial parts detection (eyes, nose, mouth)
+- images manipulation: crop, shift, rotation, mirroring and image-pyramid building
 
 ## Installation
 
@@ -23,3 +24,5 @@ First, install the **dependencies**:
 Import the module into your project with `from impros import ImageProcessor as impros`
 
 *For now just read methods thorough comments as the reference*
+
+Run *prep_data.py* to make cropped and shifted face images of each image in *./photos* directory and retrieve HOG descriptor for each of them
