@@ -197,7 +197,7 @@ class VKAuth(object):
             self.pswd = None
             return False
         elif 'code' in self.form_parser.params and not self.two_factor_auth:
-            self.two_factor_auth = True
+            raise RuntimeError('Two-factor authentication expected from VK.\nChange `two_factor_auth` to `True` and provide a security code.')
         else:
             return True
 

@@ -19,11 +19,11 @@ class PhotoDownloader(object):
 								perms = ['friends', 'photos'])
 
 	def updateIds(self, file_name):
-	"""
-		gets a list of ids from the given file
-		@args
-			file_name – (str). Name of file to get ids from
-	"""
+		"""
+			gets a list of ids from the given file
+			@args
+				file_name – (str). Name of file to get ids from
+		"""
 		if os.path.isfile(file_name):
 			f = open(file_name, 'r')
 			self.ids = f.read().strip('[]').split(', ')
@@ -32,11 +32,11 @@ class PhotoDownloader(object):
 			self.api.DFSFriends(id=self.account_data['id'], ids=self.ids, file_name='ids')
 
 	def updateAccountData(self, file_name):
-	"""
-		gets an account data from the given file and forms it as a dictionary
-		@args
-			file_name – (str). Name of file to get account data from
-	"""
+		"""
+			gets an account data from the given file and forms it as a dictionary
+			@args
+				file_name – (str). Name of file to get account data from
+		"""
 		f = open(file_name, 'r')
 		data = f.read()
 		f.close()
@@ -46,18 +46,18 @@ class PhotoDownloader(object):
 	def downloadAll(self, thread_count = 10, photo_count = 10,
 					path = 'photos', file_format = '.jpg', photo_type = 'm',
 					no_service_albums = 1, need_hidden = 0, skip_hidden = 0):
-	"""
-		downloads photo_count photos for each id in self.ids and stores them in path directory.
-		Photos for each id will be in separate package with name id
-		Note: it skips if a directory with same name already exists (that means this program already worked here)
+		"""
+			downloads photo_count photos for each id in self.ids and stores them in path directory.
+			Photos for each id will be in separate package with name id
+			Note: it skips if a directory with same name already exists (that means this program already worked here)
 
-		@args
-			thread_count – (uint). Max number of threads to use
-			photo_count – (uint). Max number of photos of each user to download
-			path – (str). Path to directory for photos to store
-			file_format – (str). Format of image file
-			photo_type – (str). One of ['s','m','x','y','z','w','o','p','q'] (see description at the end of file)
-	"""
+			@args
+				thread_count – (uint). Max number of threads to use
+				photo_count – (uint). Max number of photos of each user to download
+				path – (str). Path to directory for photos to store
+				file_format – (str). Format of image file
+				photo_type – (str). One of ['s','m','x','y','z','w','o','p','q'] (see description at the end of file)
+		"""
 
 		# make dir if it doesn't exist
 		if not os.path.exists(path):
@@ -66,10 +66,10 @@ class PhotoDownloader(object):
 		if self.ids is None:
 			raise Exception('self.ids is None')
 		for id in self.ids:
-			path = path + '/' + id
+			folder_path = path + '/' + id
 			# if file with this name already exists skip it
-			if not os.path.exists(path):
-				os.makedirs(path)
+			if not os.path.exists(folder_path):
+				os.makedirs(folder_path)
 			else: continue
 			# prepare payload for request
 			payload = {
@@ -86,11 +86,13 @@ class PhotoDownloader(object):
 			request = self.api.getRequest('photos.getAll', payload)
 			# skip request error
 			if 'error' in request: continue
-			response = request.get('response')
+			response = request['response']
 			# create and start threads for downloading photos
-			for index, item in enumerate(response['items']):
+			all_photos = response[1:]
+			photos = [next(s for s in p['sizes'] if s['type'] is photo_type) for p in all_photos]
+			for index, item in enumerate(photos):
 				size = str(item['width']) + 'x' + str(item['height'])
-				photo_name = path + '/' + str(index) + photo_type + size + file_format
+				photo_name = folder_path + '/' + str(index) + photo_type + size + file_format
 				if os.path.isfile(photo_name): continue
 
 				# wait for available threads
@@ -100,18 +102,20 @@ class PhotoDownloader(object):
 				new_thread = thr.Thread(target = download, args = (item['src'], photo_name))
 				try: new_thread.start()
 				except: print('couldn\'t start a new thread')
-				# print('\rthread count: {0}'.format(thr.active_count()), end='')
+				print('\rthread count: {0}'.format(thr.active_count()), end='')
+				index += 1
+			return
 
 def download(link, name):
-"""
-	downloads a file at link into name
-	@args
-		link – (str). Link to a file that needs to be downloaded
-		name – (str). Name to give to the downloaded file
-	@return
-		True if download was ok
-		False if not
-"""
+	"""
+		downloads a file at link into name
+		@args
+			link – (str). Link to a file that needs to be downloaded
+			name – (str). Name to give to the downloaded file
+		@return
+			True if download was ok
+			False if not
+	"""
 	try:
 		url.urlretrieve(link, name)
 		return True
