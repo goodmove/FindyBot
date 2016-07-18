@@ -4,7 +4,7 @@ import os
 import os.path
 
 class vkapi(object):
-	def __init__(self, app_id, app_secure, api_v = 5.52, perms = ['friends']):
+	def __init__(self, app_id, app_secure, api_v=5.52, perms=['friends']):
 		self.app_id 	= app_id
 		self.app_secure = app_secure
 		self.api_v 		= api_v
@@ -35,36 +35,53 @@ class vkapi(object):
 				return self.getRequest(method, params)
 		return j
 
-	def DFSFriends(self, id, ids=[], depth=3, file_name=None):
+	def findFriends(self, id, depth=3, file_name=None, algorithm='bfs'):
 		"""
-			finds recursively friends using depth-first algorithm
+			finds friends using depth-first or breadth-first algorithm
 			@args
 				id – (int). id of user whose friends to search
-				ids – ([int]). found friends' ids
 				depth – (int). How deep in friends to search (e.g. for friends of friends depth = 2)
+				file_name – (str). Name of a file to write found ids in
+				algorithm – (str). 'bfs' or 'dfs'
 		"""
-		count = 0
-		_DFSFriends(id, ids, depth)
-		print('\n')
-		if not file_name is None:
-			f = open(file_name, 'w')
-			f.write(str(ids).strip('[]'))
-			f.close()
+		graph = {}
+		self._count = 0
+		self.build_friends_graph(id, graph, depth)
+		print(graph)
+		return
+		visited = set()
+		if algorithm.lower() is 'bfs':
+			queue = [id]
+			while queue:
+				vertex = queue.pop()
+				if vertex not in visited:
+					visited.add(vertex)
+					queue.extend(graph[vertex] - visited)
+		elif algorithm.lower() is 'dfs':
+			stack = [id]
+			while stack:
+				vertex = stack.pop(0)
+				if vertex not in visited:
+					visited.add(vertex)
+					stack.extend(graph[vertex] - visited)
 
-	def _DFSFriends(self, id, ids, depth):
+		else:
+			print('error: {0} bad name of algorithm'.format(algorithm))
+		print('\ndone')
+		f = open(file_name, 'w')
+		f.write(str(visited).strip('[]'))
+		f.close()
+
+	def build_friends_graph(self, id, graph, depth):
 		if depth <= 0: return
-		global count
-		ids.append(id)
-		payload = {'user_id':id}
-		request = api.getRequest('friends.get', payload)
+		request = self.getRequest('friends.get', {'user_id':id})
 		if 'error' in request: return
 		friends = request['response']
-		for friend in friends: 
-			if not friend in ids:
-				count += 1
-				# uncomment to see how many friends found
-				# print('\rfound friends: {0}'.format(count), end='')
-				get_friend_ids(api, friend, ids, depth-1)
+		graph[id] = set(friends)
+		for friend in friends:
+			self._count += 1
+			print('\rfrinds found: {0}'.format(self._count), end='')
+			self.build_friends_graph(friend, graph, depth-1)
 
 	def updateToken(self):
 		if os.path.isfile('token'):

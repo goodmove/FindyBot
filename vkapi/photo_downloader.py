@@ -1,4 +1,4 @@
-import vkapi
+from vkapi import vkapi
 import urllib.request as url
 import os.path
 import time
@@ -104,7 +104,6 @@ class PhotoDownloader(object):
 				except: print('couldn\'t start a new thread')
 				print('\rthread count: {0}'.format(thr.active_count()), end='')
 				index += 1
-			return
 
 def download(link, name):
 	"""

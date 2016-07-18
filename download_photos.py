@@ -1,4 +1,4 @@
-import photos_downloader as pd
+from vkapi import photo_downloader as pd
 
 p = pd.PhotoDownloader()
-p.downloadAll(photo_count=10, thread_count=1, no_service_albums=0)
+p.downloadAll(photo_count=10, thread_count=10, no_service_albums=0)
