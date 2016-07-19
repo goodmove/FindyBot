@@ -16,9 +16,9 @@ class PhotoDownloader(object):
 								self.account_data['app_secure'],
 								'5.52', 
 								perms = ['friends', 'photos'])
-		self.updateIds(ids_file)
+		# self.updateIds(ids_file)
 
-	def updateIds(self, file_name):
+	def updateIds(self, file_name='ids'):
 		"""
 			gets a list of ids from the given file
 			@args
@@ -26,11 +26,11 @@ class PhotoDownloader(object):
 		"""
 		if os.path.isfile(file_name):
 			f = open(file_name, 'r')
-			self.ids = f.read().strip('[]').split(', ')
+			self.ids = f.read().strip('}{').split(', ')
 			f.close()
-		else:
+		# else:
 			# print(self.user_id)
-			self.api.findFriends(self.user_id, file_name=file_name)
+			# self.api.findFriends(self.user_id, file_name=file_name)
 
 	def updateAccountData(self, file_name):
 		"""
