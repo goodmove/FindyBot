@@ -1,5 +1,5 @@
 from vkapi.vkapi import vkapi
-from image_processing.impros import ImageProcessor as imp
+# from image_processing.impros import ImageProcessor as imp
 import urllib.request as url
 import os.path
 import time
@@ -185,10 +185,10 @@ def download(link, name, check_face):
 		url.urlretrieve(link, name)
 	except:
 		return False
-	if check_face:
-		if not imp.detect_face(path=name):
-			os.remove(name)
-			return False
+	# if check_face:
+	# 	if not imp.detect_face(path=name):
+	# 		os.remove(name)
+	# 		return False
 	return True
 
 """
