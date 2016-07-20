@@ -9,36 +9,10 @@ import os
 
 class ImageProcessor(object):
     def __init__(self, face_clf=None, eye_clf=None, nose_clf=None, mouth_clf=None):
-        """
-            @args:
-                img_dir_list - (list); list of directories to search for images in. must be inside 'photos' directory
-        """
         self.face_clf = face_clf
         self.eye_clf = eye_clf
         self.nose_clf = nose_clf
         self.mouth_clf = mouth_clf
-
-    def retrieve_features(self, root, dsize=None, clean=False):
-        """
-            @descr:
-                goes over each directory in self.img_dir_list,
-                finds images inside, looks for faces and crops them,
-                finds eyes, eyebrows, mouth and nose and crops them
-            @args:
-                root - (str); path to the folder, where photos are to be processed
-        """
-        if not os.path.isdir(root):
-            print(root + ' is not a directory')
-            return;
-
-        root = os.listdir(root)
-
-        for dir in root:
-            if os.path.isdir(root + '/' + dir):
-                for fn in os.listdir(root + '/' + dir):
-                    path = root + '/' + dir + '/' + fn
-                    if os.path.isfile(path):
-                        self.detect_face(path=path, crop=True, resize=True, dsize=dsize)
 
     def detect_face_ext(self, bounds=None, path=None, img=None, resize=False, dsize=None, visualize=False):
         """
@@ -197,7 +171,7 @@ class ImageProcessor(object):
 
         lx, rx = left_blob[1], right_blob[1] + w/2
         ly, ry = left_blob[0], right_blob[0]
-        eye_vector = np.array([rx-lx, ry-ly]) / det_hlp.dist((0,0), (rx-lx, ry-ly)) # (x, y) -> direction vector for eyeballs normalized
+        eye_vector = np.array([rx-lx, ry-ly]) / det_hlp.v_len((rx-lx, ry-ly)) # (x, y) -> direction vector for eyeballs normalized
 
         if visualize:
             det_hlp.visualize_blobs(left_eye, right_eye, left_blob, right_blob)
