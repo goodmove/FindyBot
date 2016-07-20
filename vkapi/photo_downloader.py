@@ -1,21 +1,22 @@
-from vkapi import vkapi
+from vkapi.vkapi import vkapi
+from image_processing.impros import ImageProcessor as imp
 import urllib.request as url
 import os.path
 import time
 import threading as thr
 
 class PhotoDownloader(object):
-	def __init__(self, account_file = 'account', ids_file = 'ids'):
+	def __init__(self, account_file='account', ids_file='ids'):
 		self.account_data 	= None
 		self.ids 		 	= []
 
 
 		self.updateAccountData(account_file)
 		self.user_id = int(self.account_data['id'])
-		self.api = vkapi.vkapi(	self.account_data['app_id'],
-								self.account_data['app_secure'],
-								'5.52', 
-								perms = ['friends', 'photos'])
+		self.api = vkapi(	self.account_data['app_id'],
+							self.account_data['app_secure'],
+							'5.52', 
+							perms=['friends', 'photos'])
 		# self.updateIds(ids_file)
 
 	def updateIds(self, file_name='ids'):
@@ -26,7 +27,7 @@ class PhotoDownloader(object):
 		"""
 		if os.path.isfile(file_name):
 			f = open(file_name, 'r')
-			self.ids = f.read().strip('}{').split(', ')
+			self.ids = [int(i) for i in f.read().strip('}{').split(',')]
 			f.close()
 		# else:
 			# print(self.user_id)
@@ -44,9 +45,63 @@ class PhotoDownloader(object):
 		# parse account data to dictionary
 		self.account_data = dict([field.split(':') for field in data.split(',')])
 
-	def downloadAll(self, thread_count = 10, photo_count = 10,
-					path = 'photos', file_format = '.jpg', photo_type = 'm',
-					no_service_albums = 1, need_hidden = 0, skip_hidden = 0):
+	def downloadWithFaces(	self, photo_count=10, thread_count=10, show_thread_count=False,
+							path='photos', file_format='.jpg', photo_type='m'):
+		if self.ids is None or self.ids is []:
+			print('please, update ids')
+			return
+
+		# make dir if it doesn't exist
+		if not os.path.exists(path):
+			os.makedirs(path)
+
+		for id in self.ids:
+			ipath = path + '/' + str(id)
+
+			# if file with this name already exists skip it
+			if not os.path.exists(ipath):
+				os.makedirs(ipath)
+			# else: continue
+			
+			payload = {
+				'owner_id':				id,
+				'album_id':				'profile',
+				'extended':				0,
+				'rev':					0,
+				'offset':				0,
+				'count':				photo_count,
+				'photo_sizes':			1
+			}
+			request = self.api.getRequest('photos.get', payload)
+			if 'error' in request: continue
+			photos = request['response']
+			count = len(photos)
+			if count < photo_count:
+				payload = {
+					'owner_id':				id,
+					'no_service_albums':	1,
+					'offset':				0,
+					'count':				photo_count-count,
+					'photo_sizes':			1
+				}	
+				request = self.api.getRequest('photos.getAll', payload)
+				if 'error' not in request:
+					extra_photos = request['response'][1:]
+					photos.extend(extra_photos)
+			all_sizes = [photo['sizes'] for photo in photos]
+			links = {}
+			for sizes in all_sizes:
+				for size in sizes:
+					if size['type'] is photo_type:
+						links[size['src']] = photo_type + '{0}x{1}'.format(size['width'], size['height'])
+			for index, (link, size) in enumerate(links.items()):
+				photo_name = ipath + '/' + str(index) + size + file_format
+				self.download(link, photo_name, thread_count, check_face=False, show_thread_count=show_thread_count)
+		print('\ndone :)')
+
+	def downloadAll(self, photo_count=10, thread_count=10, show_thread_count=False,
+					path='photos', file_format='.jpg', photo_type='m',
+					no_service_albums=0, need_hidden=0, skip_hidden=0):
 		"""
 			downloads photo_count photos for each id in self.ids and stores them in path directory.
 			Photos for each id will be in separate package with name id
@@ -66,16 +121,17 @@ class PhotoDownloader(object):
 
 		if self.ids is None:
 			raise Exception('self.ids is None')
+
 		for id in self.ids:
-			folder_path = path + '/' + id
+			ipath = path + '/%d' % id
+
 			# if file with this name already exists skip it
-			if not os.path.exists(folder_path):
-				os.makedirs(folder_path)
+			if not os.path.exists(ipath):
+				os.makedirs(ipath)
 			else: continue
 			# prepare payload for request
 			payload = {
 				'owner_id':				id, 
-				'extended':				0,
 				'offset':				0,
 				'count':				photo_count,
 				'photo_sizes':			1,
@@ -90,23 +146,32 @@ class PhotoDownloader(object):
 			response = request['response']
 			# create and start threads for downloading photos
 			all_photos = response[1:]
+			# find first photo of size 'photo_type' into photos
 			photos = [next(s for s in p['sizes'] if s['type'] is photo_type) for p in all_photos]
 			for index, item in enumerate(photos):
-				size = str(item['width']) + 'x' + str(item['height'])
-				photo_name = folder_path + '/' + str(index) + photo_type + size + file_format
+				size = '{0}x{1}'.format(item['width'], item['height'])
+				photo_name = ipath + '/' + str(index) + photo_type + size + file_format
 				if os.path.isfile(photo_name): continue
+				self.download(item['src'], photo_name, thread_count, show_thread_count=show_thread_count)
+		print('\ndone :)')
 
-				# wait for available threads
-				while thr.active_count() >= thread_count:
-					time.sleep(0.01) # sleep for 10 millis
+	def download(self, link, name, thread_count, check_face=False, show_thread_count=False):
+		# wait for available threads
+		while thr.active_count() >= thread_count:
+			time.sleep(0.01) # sleep for 10 millis
 
-				new_thread = thr.Thread(target = download, args = (item['src'], photo_name))
-				try: new_thread.start()
-				except: print('couldn\'t start a new thread')
-				print('\rthread count: {0}'.format(thr.active_count()), end='')
-				index += 1
+		new_thread = thr.Thread(target=download, args=(link, name, check_face))
+		try: new_thread.start()
+		except: print('\rcouldn\'t start a new thread')
+		if show_thread_count:
+			print('\rthread count: %3d' % thr.active_count(), end='')
 
-def download(link, name):
+	def findFriends(self, id=None, depth=3, file_name='ids', algorithm='bfs'):
+		if id is None: id = self.account_data['id']
+		self.api.findFriends(id=id, depth=depth, file_name=file_name, algorithm=algorithm)
+
+
+def download(link, name, check_face):
 	"""
 		downloads a file at link into name
 		@args
@@ -118,9 +183,13 @@ def download(link, name):
 	"""
 	try:
 		url.urlretrieve(link, name)
-		return True
 	except:
 		return False
+	if check_face:
+		if not imp.detect_face(path=name):
+			os.remove(name)
+			return False
+	return True
 
 """
 	Available values of field 'photo_type'

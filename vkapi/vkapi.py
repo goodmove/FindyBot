@@ -1,4 +1,4 @@
-from third_party.VKAuth import vkauth
+from vkapi.vkauth import VKAuth
 import requests
 import os
 import os.path
@@ -15,7 +15,7 @@ class vkapi(object):
 		self.updateToken()
 
 	def auth(self):
-		self.sess = vkauth.VKAuth(self.perms, self.app_id, self.api_v)
+		self.sess = VKAuth(self.perms, self.app_id, self.api_v)
 		self.sess.auth()
 		self.token = self.sess.get_token()
 		f = open('token', 'w')
@@ -27,16 +27,16 @@ class vkapi(object):
 			self.auth()
 
 		params['access_token'] = self.token
-		r = requests.get('https://api.vk.com/method/'+method+'?', params = params)
+		r = requests.get('https://api.vk.com/method/'+method+'?', params=params)
 		j = r.json()
 		if 'error' in j:
 			msg = j['error']['error_msg']
-			print('error: ' + msg)
+			print('\rerror: ' + msg)
 			if 'User authorization failed' in msg:
 				self.auth()
 				return self.getRequest(method, params)
 			elif 'Too many requests per second' in msg:
-				time.sleep(.1)
+				time.sleep(0.1)
 				return self.getRequest(method, params)
 		return j
 
@@ -49,23 +49,30 @@ class vkapi(object):
 				file_name – (str). Name of a file to write found ids in
 				algorithm – (str). 'bfs' or 'dfs'
 		"""
-		friends = self.bfs(id, depth=depth)
+		if os.path.isfile(file_name):
+			f = open(file_name, 'r')
+			friends = {int(friend) for friend in f.read().strip('}{][').split(',') if friend is not ''}
+			f.close()
+			friends = self.bfs(id, depth=depth, found=friends)
+		else:
+			friends = self.bfs(id, depth=depth)
 		f = open(file_name, 'w')
-		f.write(str(friends).strip('}{'))
+		f.write(','.join([str(f) for f in friends]))
 		f.close()
 
 	def bfs(self, start, depth=3, found=set()):
 		if depth <= 0: return found
-		request = self.getRequest('friends.get', {'user_id':start})
-		friends = request.get('response')
-		if friends is None: return found
-		friends = set(friends)
-		new_found = friends - found
-		found |= friends
+		time.sleep(0.01)
+		request = self.getRequest('friends.get', {'user_id':start, 'fields':'deactivated'})
+		if 'error' in request: return found
+		friends = request['response']
+		ids = {friend['uid'] for friend in friends if 'deactivated' not in friend}
+		new_found = ids - found
+		found |= new_found
 		print('\rfound: {0}'.format(len(found)), end='')
-		if depth == 1: return found
-		for i in new_found:
-			found |= self.bfs(i, depth-1, found)
+		if depth > 1:
+			for i in new_found:
+				found = self.bfs(i, depth-1, found)
 		return found
 
 	def updateToken(self):
