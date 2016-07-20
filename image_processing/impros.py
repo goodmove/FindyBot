@@ -1,5 +1,6 @@
 from skimage.transform import pyramid_gaussian
-from image_processing import detection_helpers as det_hlp
+import detection_helpers as det_hlp
+from clf_constants import CONSTANTS
 from skimage import transform
 import matplotlib as mpl
 import numpy as np
@@ -8,13 +9,18 @@ import cv2
 import os
 
 class ImageProcessor(object):
-    def __init__(self, face_clf=None, eye_clf=None, nose_clf=None, mouth_clf=None):
+    def __init__(
+                self,
+                face_clf=CONSTANTS['face_clf'],
+                eye_clf=CONSTANTS['eye_clf'],
+                mouth_clf=CONSTANTS['mouth_clf']
+                ):
         self.face_clf = face_clf
         self.eye_clf = eye_clf
-        self.nose_clf = nose_clf
         self.mouth_clf = mouth_clf
 
-    def detect_face_ext(self, bounds=None, path=None, img=None, resize=False, dsize=None, visualize=False):
+    @staticmethod
+    def detect_face_ext(bounds=None, path=None, img=None, visualize=False):
         """
             @descr:
                 Detects face and localizes it with a rectangle. Then extends the
@@ -23,12 +29,10 @@ class ImageProcessor(object):
                 the image borders.
             @args:
                 bounds - (tuple(dx, dy)); max shift by Ox and Oy axis respectively
-                ======
-                others are described in `detect_face` method below
             @return:
                 (tuple) - dimensions of extended face frame and axis shifts
         """
-        face = self.detect_face(path=path, img=img, resize=resize, dsize=dsize)
+        face = ImageProcessor.detect_face(path=path, img=img)
 
         if len(face) != 4:
             print('No face detected')
@@ -61,20 +65,21 @@ class ImageProcessor(object):
         # return dimensions of extended face frame and axis shifts
         return (X, Y, W, H, dx, dy)
 
-    def detect_face(self, path=None, img=None, crop=False, resize=False, dsize=None):
+    @staticmethod
+    def detect_face(path=None, img=None):
         """
             @args:
-                path = (str); relative path to the image
+                path - (str); relative path to the image
+                img - (ndarray); 2-D image array
             @return:
                 (x, y, w, h) – a tuple for one face detected
                 () – empty tuple if zero or more than one face were detected
         """
         face_cascade = cv2.CascadeClassifier();
 
-        if not face_cascade.load(self.face_clf):
+        if not face_cascade.load(CONSTANTS['face_clf']):
             print('Couldn\'t load face classifier xml')
             return tuple();
-
 
         if img is None and not path is None:
             img = cv2.imread(path, 0)
@@ -88,21 +93,9 @@ class ImageProcessor(object):
 
         faces = face_cascade.detectMultiScale(img, 1.3, 4)
 
-        # remove the original photo
-        # os.remove(path)
-
-        # if no faces found or there are too many, remove the file
+        # if no faces found or there are too many, return empty tuple
         if len(faces) != 1:
-            # os.remove(path)
             return tuple();
-
-        if crop:
-            # crop face and save it
-            _path = path.split('/')
-            _fn =  _path[-1].split('.')[0]
-            _path = '/'.join(_path[:-1])
-
-            self.crop(img, faces[0], _path, _fn, resize=resize, dsize=dsize)
 
         return faces[0]
 
@@ -228,7 +221,8 @@ class ImageProcessor(object):
         else:
             cv2.imwrite(full_path, cropped)
 
-    def rotate_img(self, img, deg, anchor=None):
+    @staticmethod
+    def rotate_img(img, deg, anchor=None):
         w, h = img.shape
         if anchor == None:
             anchor = (w/2, h/2)
@@ -237,16 +231,20 @@ class ImageProcessor(object):
 
         return dst
 
-    def mirror_img(self, img, axis=1):
+    @staticmethod
+    def mirror_img(img, axis=1):
         return cv2.flip(img, axis)
 
-    def image_pyr(self, img, downscale=2, layers=5):
+    @staticmethod
+    def image_pyr(img, downscale=2, layers=5):
         return tuple(pyramid_gaussian(img, downscale=downscale, max_layer=layers))
 
-    def resize_img(self, img, size, preserve_range=True):
+    @staticmethod
+    def resize_img(img, size, preserve_range=True):
         return transform.resize(img, size, preserve_range=preserve_range)
 
-    def shift_img(self, img, dims, shift_values, randomize=True):
+    @staticmethod
+    def shift_img(img, dims, shift_values, randomize=True):
         """
             @descr:
                 shifts `img` by values set in `shift_values`

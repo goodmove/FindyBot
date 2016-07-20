@@ -1,6 +1,7 @@
 CONSTANTS = {
     'face_clf': 'haar_clfs/haarcascade_frontalface_alt.xml',
     'eye_clf': 'haar_clfs/eyes1.xml',
+    'mouth_clf': 'haar_clfs/mouth.xml',
     'resize_values': (150, 150),
     'orientations': 8,
     'pixels_per_cell': (16, 16),

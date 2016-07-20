@@ -8,11 +8,6 @@ import csv
 import cv2
 import os
 
-# init global image processor object
-face_clf = CONSTANTS['face_clf']
-eye_clf = CONSTANTS['eye_clf']
-imp = impros(eye_clf=eye_clf, face_clf=face_clf)
-
 """
     data preparation functions
 """
@@ -47,13 +42,12 @@ def get_faces(path, faces, shift_values):
         @descr:
             looks for face in the image and returnds its extended rectangle
     """
-    global imp
     img = cv2.imread(path, 0)
     if img is None:
         print('Couldn\'t open img. Path: ', path)
         return faces;
 
-    res = imp.detect_face_ext(bounds=shift_values, img=img)
+    res = impros.detect_face_ext(bounds=shift_values, img=img)
 
     if len(res) == 0:
         # remove the original image
@@ -69,7 +63,6 @@ def propagate_images(path, face_rect, num_of_shifts, randomize, resize_values):
         @descr:
             takes an image, crops it, shifts and reflects `num_of_shifts` times
     """
-    global imp
     img = cv2.imread(path, 0)
     if img is None:
         print('Couldn\'t open img. Path: ', path)
@@ -81,9 +74,9 @@ def propagate_images(path, face_rect, num_of_shifts, randomize, resize_values):
     # os.remove(path)
 
     for n in range(num_of_shifts):
-        shifted = imp.shift_img(img, (x,y,w,h), (dx,dy), randomize=randomize)
-        resized = imp.resize_img(shifted, resize_values)
-        mirrored = imp.mirror_img(resized)
+        shifted = impros.shift_img(img, (x,y,w,h), (dx,dy), randomize=randomize)
+        resized = impros.resize_img(shifted, resize_values)
+        mirrored = impros.mirror_img(resized)
 
         # retrieve feature vector and append it to csv file
         add_hog_feature(resized, path)
