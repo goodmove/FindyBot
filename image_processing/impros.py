@@ -1,5 +1,5 @@
 from skimage.transform import pyramid_gaussian
-import detection_helpers as det_hlp
+from image_processing import detection_helpers as det_hlp
 from skimage import transform
 import matplotlib as mpl
 import numpy as np
