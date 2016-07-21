@@ -1,4 +1,4 @@
-from bot_io.bot_io import *
+from src.bot.bot import *
 from time import sleep
 
 # TODO:

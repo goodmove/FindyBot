@@ -1,5 +1,5 @@
 import requests
-import logs.log_io as LOG_IO
+from ..logs import Logger as Logger
 from . import commands
 from threading import Timer
 from .types import (Update, Message, EditedMessage, User, Chat, Photo)
@@ -89,7 +89,7 @@ class Listener(object):
         for upd in updates:
             # self.offset = upd.update_id + 1
             if upd.message:
-                LOG_IO.log_requests(log_file, upd.type, upd.message.user, upd.message.chat, upd.message)
+                Logger.log_requests(log_file, upd.type, upd.message.user, upd.message.chat, upd.message)
                 if self._dispatch(upd.message.user, upd.message.chat, upd.message.text):
                     self.offset = upd.update_id + 1
             elif upd.edited_message:
