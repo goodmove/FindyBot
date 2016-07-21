@@ -38,6 +38,12 @@ class ImageProcessor(object):
             print('No face detected')
             return tuple()
 
+        if img is None:
+            img = cv2.imread(path, 0)
+            if img is None:
+                print('Couldn\'t open image. Path:', path)
+                return tuple()
+
         imw, imh = img.shape
         x, y, w, h = face
         dx, dy = (int(0.3*w), int(0.3*h)) if bounds is None else bounds
@@ -51,7 +57,7 @@ class ImageProcessor(object):
         dy = int(min(dy1, dy2))
 
         # exception handling. a weird case.
-        if dx < 0 || dy < 0:
+        if dx < 0 or dy < 0:
             return tuple()
 
         X = x-dx
