@@ -1,5 +1,5 @@
 from vkapi.vkapi import vkapi
-# from image_processing.impros import ImageProcessor as imp
+from image_processing.impros import ImageProcessor as imp
 import urllib.request as url
 import os.path
 import time
@@ -61,33 +61,20 @@ class PhotoDownloader(object):
 			# if file with this name already exists skip it
 			if not os.path.exists(ipath):
 				os.makedirs(ipath)
-			# else: continue
+			else: continue
 			
 			payload = {
 				'owner_id':				id,
-				'album_id':				'profile',
-				'extended':				0,
-				'rev':					0,
+				'no_service_albums':	0,
 				'offset':				0,
 				'count':				photo_count,
 				'photo_sizes':			1
 			}
-			request = self.api.getRequest('photos.get', payload)
+
+			request = self.api.getRequest('photos.getAll', payload)
+
 			if 'error' in request: continue
-			photos = request['response']
-			count = len(photos)
-			if count < photo_count:
-				payload = {
-					'owner_id':				id,
-					'no_service_albums':	1,
-					'offset':				0,
-					'count':				photo_count-count,
-					'photo_sizes':			1
-				}	
-				request = self.api.getRequest('photos.getAll', payload)
-				if 'error' not in request:
-					extra_photos = request['response'][1:]
-					photos.extend(extra_photos)
+			photos = request['response'][1:]
 			all_sizes = [photo['sizes'] for photo in photos]
 			links = {}
 			for sizes in all_sizes:
@@ -96,7 +83,7 @@ class PhotoDownloader(object):
 						links[size['src']] = photo_type + '{0}x{1}'.format(size['width'], size['height'])
 			for index, (link, size) in enumerate(links.items()):
 				photo_name = ipath + '/' + str(index) + size + file_format
-				self.download(link, photo_name, thread_count, check_face=False, show_thread_count=show_thread_count)
+				self.download(link, photo_name, thread_count, check_face=True, show_thread_count=show_thread_count)
 		print('\ndone :)')
 
 	def downloadAll(self, photo_count=10, thread_count=10, show_thread_count=False,
@@ -185,10 +172,11 @@ def download(link, name, check_face):
 		url.urlretrieve(link, name)
 	except:
 		return False
-	# if check_face:
-	# 	if not imp.detect_face(path=name):
-	# 		os.remove(name)
-	# 		return False
+	if check_face:
+		face = imp.detect_face_ext(path=name, visualize=True)
+		if len(face) is 0:
+			os.remove(name)
+			return False
 	return True
 
 """
