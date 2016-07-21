@@ -1,6 +1,6 @@
-from impros import ImageProcessor as impros
+from image_processing.impros import ImageProcessor as impros
+from image_processing.clf_constants import CONSTANTS
 from sklearn.externals import joblib
-from clf_constants import CONSTANTS
 from skimage import feature
 import cv2
 

@@ -1,4 +1,4 @@
-import predict_hog as hog
+import image_processing.predict_hog as hog
 
 ALG = 'hog' # can be 'hog', 'daisy', 'orb'
 
@@ -8,5 +8,5 @@ def predict(path):
         print(hog.predict_hog(path))
 
 
-path='6.jpg'
+path = ''
 predict(path)

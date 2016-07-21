@@ -1,6 +1,6 @@
 from skimage.transform import pyramid_gaussian
-from impros import ImageProcessor as impros
-from clf_constants import CONSTANTS
+from image_processing.impros import ImageProcessor as impros
+from image_processing.clf_constants import CONSTANTS
 from skimage import feature
 import numpy as np
 import shutil
@@ -33,7 +33,7 @@ def add_hog_feature(img, path):
     vector = np.append(vector, [user_id])
 
     # turn vector into csv formated string
-    with open('./data/data_hog.csv', 'a+') as csvfile:
+    with open('./image_processing/data/data_hog.csv', 'a+') as csvfile:
         writer = csv.writer(csvfile, strict=True)
         writer.writerow(vector)
 
@@ -69,7 +69,7 @@ def propagate_images(path, face_rect, num_of_shifts, randomize, resize_values):
         return;
 
     x,y,w,h,dx,dy = face_rect
-
+    print(face_rect)
     # remove the original image
     # os.remove(path)
 

@@ -1,6 +1,6 @@
+from image_processing import detection_helpers as det_hlp
+from image_processing.clf_constants import CONSTANTS
 from skimage.transform import pyramid_gaussian
-import detection_helpers as det_hlp
-from clf_constants import CONSTANTS
 from skimage import transform
 import matplotlib as mpl
 import numpy as np
@@ -34,7 +34,7 @@ class ImageProcessor(object):
         """
         face = ImageProcessor.detect_face(path=path, img=img)
 
-        if len(face) != 4:
+        if len(face) == 0:
             print('No face detected')
             return tuple()
 
@@ -49,6 +49,10 @@ class ImageProcessor(object):
         dy1 = dy if y-2*dy >= 0 else y/2
         dy2 = dy if imh  >= (y+h) + 2*dy else (imh - (y+h))/2
         dy = int(min(dy1, dy2))
+
+        # exception handling. a weird case.
+        if dx < 0 || dy < 0:
+            return tuple()
 
         X = x-dx
         Y = y-dy
