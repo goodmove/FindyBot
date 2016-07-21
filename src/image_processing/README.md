@@ -21,18 +21,4 @@ First, install the **dependencies**:
 
 ## Usage
 
-Import the module into your project with `from impros import ImageProcessor as impros`
-
 *For now just read methods thorough comments as the reference*
-
-**HOG implementation:**
-
-1. Use *clf_constants.py* as a config file to tune up HOG and classifier params.
-2. Run *prep_data.py* with `ALG='HOG'` to make cropped and shifted face images of each image in *./photos* directory and retrieve HOG descriptor for each of them.
-3. This will create a csv file inside *./data* directory. Use that file to train a classifier.
-4. Load it in *predict.py* with the `path` variable to get classification result.
-5. Enjoy your life
-
-**P.S.:** sample classifier is already provided in *./clfs* directory.
-
-

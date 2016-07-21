@@ -3,7 +3,6 @@ logs/**
 !logs/__init__.py
 !logs/Logger.py
 dev
-controls.txt
 main_copy.py
 _test
 test.py
