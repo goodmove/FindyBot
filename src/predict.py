@@ -8,5 +8,5 @@ def predict(path):
         print(hog.predict_hog(path))
 
 
-path = ''
+path = '2.jpg'
 predict(path)

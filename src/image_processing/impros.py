@@ -35,7 +35,7 @@ class ImageProcessor(object):
         face = ImageProcessor.detect_face(path=path, img=img)
 
         if len(face) == 0:
-            print('No face detected')
+            # print('No face detected')
             return tuple()
 
         if img is None:
@@ -101,7 +101,8 @@ class ImageProcessor(object):
             print('Couldn\'t open file. Path: ', path)
             return tuple()
 
-        faces = face_cascade.detectMultiScale(img, 1.3, 4)
+        x, y = img.shape
+        faces = face_cascade.detectMultiScale(img, 1.25, 6, minSize=(int(0.12*x), int(0.12*y)))
 
         # if no faces found or there are too many, return empty tuple
         if len(faces) != 1:

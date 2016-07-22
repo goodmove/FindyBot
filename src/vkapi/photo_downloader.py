@@ -9,13 +9,13 @@ class PhotoDownloader(object):
 	def __init__(self, account_file='account', ids_file='ids'):
 		self.account_data 	= None
 		self.ids 		 	= []
-
+		self.photos_downld = 0
 
 		self.updateAccountData(account_file)
 		self.user_id = int(self.account_data['id'])
 		self.api = vkapi(	self.account_data['app_id'],
 							self.account_data['app_secure'],
-							'5.52', 
+							'5.52',
 							perms=['friends', 'photos'])
 		# self.updateIds(ids_file)
 
@@ -62,28 +62,43 @@ class PhotoDownloader(object):
 			if not os.path.exists(ipath):
 				os.makedirs(ipath)
 			else: continue
-			
-			payload = {
-				'owner_id':				id,
-				'no_service_albums':	0,
-				'offset':				0,
-				'count':				photo_count,
-				'photo_sizes':			1
-			}
 
-			request = self.api.getRequest('photos.getAll', payload)
+			def downloadPack(offset, attempts, method):
+				payload = {
+					'owner_id':				id,
+					'album_id':				'profile',
+					'no_service_albums':	0,
+					'rev':					1,
+					'photo_sizes':			1,
+					'offset':				offset*photo_count,
+					'count':				photo_count
+				}
+				request = self.api.getRequest(method, payload)
 
-			if 'error' in request: continue
-			photos = request['response'][1:]
-			all_sizes = [photo['sizes'] for photo in photos]
-			links = {}
-			for sizes in all_sizes:
-				for size in sizes:
-					if size['type'] is photo_type:
-						links[size['src']] = photo_type + '{0}x{1}'.format(size['width'], size['height'])
-			for index, (link, size) in enumerate(links.items()):
-				photo_name = ipath + '/' + str(index) + size + file_format
-				self.download(link, photo_name, thread_count, check_face=True, show_thread_count=show_thread_count)
+				if 'error' in request:
+					print(request['error'])
+					return
+				photos = request['response'][1:]
+				all_sizes = [photo['sizes'] for photo in photos]
+				links = {}
+				for sizes in all_sizes:
+					for size in sizes:
+						if size['type'] is photo_type:
+							links[size['src']] = photo_type + '{0}x{1}'.format(size['width'], size['height'])
+				for index, (link, size) in enumerate(links.items()):
+					photo_name = ipath + '/' + str(index) + '#' + str(5-attempts) + file_format
+					self.download(link, photo_name, thread_count, check_face=True, show_thread_count=show_thread_count)
+
+			attempts = 5
+			offset = 0
+
+			while(attempts > 0 and len(os.listdir(ipath)) < photo_count):
+				method = 'photos.getAll' if attempts < 4 else 'photos.get'
+				downloadPack(offset, attempts, method)
+				attempts-=1
+				offset+=1
+				if attempts == 3: offset = 0
+
 		print('\ndone :)')
 
 	def downloadAll(self, photo_count=10, thread_count=10, show_thread_count=False,
@@ -118,7 +133,7 @@ class PhotoDownloader(object):
 			else: continue
 			# prepare payload for request
 			payload = {
-				'owner_id':				id, 
+				'owner_id':				id,
 				'offset':				0,
 				'count':				photo_count,
 				'photo_sizes':			1,
@@ -147,7 +162,7 @@ class PhotoDownloader(object):
 		while thr.active_count() >= thread_count:
 			time.sleep(0.01) # sleep for 10 millis
 
-		new_thread = thr.Thread(target=download, args=(link, name, check_face))
+		new_thread = thr.Thread(target=self._download, args=(link, name, check_face))
 		try: new_thread.start()
 		except: print('\rcouldn\'t start a new thread')
 		if show_thread_count:
@@ -158,26 +173,28 @@ class PhotoDownloader(object):
 		self.api.findFriends(id=id, depth=depth, file_name=file_name, algorithm=algorithm)
 
 
-def download(link, name, check_face):
-	"""
-		downloads a file at link into name
-		@args
-			link – (str). Link to a file that needs to be downloaded
-			name – (str). Name to give to the downloaded file
-		@return
-			True if download was ok
-			False if not
-	"""
-	try:
-		url.urlretrieve(link, name)
-	except:
-		return False
-	if check_face:
-		face = imp.detect_face_ext(path=name, visualize=True)
-		if len(face) is 0:
-			os.remove(name)
+	def _download(self, link, name, check_face):
+		"""
+			downloads a file at link into name
+			@args
+				link – (str). Link to a file that needs to be downloaded
+				name – (str). Name to give to the downloaded file
+			@return
+				True if download was ok
+				False if not
+		"""
+		try:
+			url.urlretrieve(link, name)
+		except:
 			return False
-	return True
+		if check_face:
+			face = imp.detect_face_ext(path=name)
+			if len(face) is 0:
+				os.remove(name)
+				return False
+			else:
+				self.photos_downld+=1
+		return True
 
 """
 	Available values of field 'photo_type'

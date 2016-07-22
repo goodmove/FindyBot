@@ -69,7 +69,7 @@ def propagate_images(path, face_rect, num_of_shifts, randomize, resize_values):
         return;
 
     x,y,w,h,dx,dy = face_rect
-    print(face_rect)
+    # print(face_rect)
     # remove the original image
     # os.remove(path)
 
@@ -89,8 +89,8 @@ def propagate_images(path, face_rect, num_of_shifts, randomize, resize_values):
         !!!
         """
         # crop face and save it
-        cv2.imwrite(path[:-4] + str(n) + '_.jpg', resized)
-        cv2.imwrite(path[:-4] + str(n) + '__.jpg', mirrored)
+        # cv2.imwrite(path[:-4] + str(n) + '_.jpg', resized)
+        # cv2.imwrite(path[:-4] + str(n) + '__.jpg', mirrored)
 
 def prep_data_hog(root, num_of_shifts=10, randomize=True, shift_values=None, resize_values=CONSTANTS['resize_values']):
     """
@@ -99,6 +99,9 @@ def prep_data_hog(root, num_of_shifts=10, randomize=True, shift_values=None, res
     """
     for dir in os.listdir(root):
         if os.path.isdir(root+'/'+dir):
+            if len(os.listdir(root+'/'+dir)) < 7:
+                shutil.rmtree(root+'/'+dir)
+                continue
             # `faces` is initialized for future extension to multi-detection
             faces = []
             path = ''

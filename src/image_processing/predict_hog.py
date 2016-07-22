@@ -9,13 +9,15 @@ def get_face(path, shift_values=None, resize_values=CONSTANTS['resize_values']):
     if img is None:
         print('Couldn\'t open img. Path: ', path)
         return [];
-
-    res = impros.detect_face_ext(bounds=shift_values, img=img)
+    # img.impros.resize_img(img, ())
+    res = impros.detect_face_ext(bounds=shift_values, img=img, visualize=True)
+    # res = impros.detect_face(img=img)
 
     if len(res) == 0:
         print('No faces found')
         return []
 
+    # x,y,w,h = res
     x,y,w,h,dx,dy = res
     return impros.resize_img(img[y:y+h, x:x+w], resize_values)
 
