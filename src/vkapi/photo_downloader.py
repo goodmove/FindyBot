@@ -6,8 +6,9 @@ import os.path
 import time
 import threading as thr
 import requests
-from cv2 import imread, imwrite
+from cv2 import imread, imwrite, rectangle
 from skimage.transform import resize
+import numpy as np
 
 class PhotoDownloader(object):
 	def __init__(self, account_file='account', ids_file='ids'):
@@ -54,7 +55,7 @@ class PhotoDownloader(object):
 
 	def downloadAll(self, photo_count=10, thread_count=10, show_thread_count=False, check_face=False,
 					path='photos', face_landmarks='landmarks.txt', file_format='.jpg', photo_type='m', 
-					no_service_albums=0, create_id_folders=False, keep_old=False, displacement=None):
+					no_service_albums=0, create_id_folders=False, keep_old=False, displacement=None, crop=False):
 		"""
 			downloads photo_count photos for each id in self.ids and stores them in path directory.
 			Photos for each id will be in separate package with name id
@@ -103,7 +104,7 @@ class PhotoDownloader(object):
 						links[size['src']] = '{0}{1}x{2}'.format(photo_type, size['width'], size['height'])
 			for pid, (link, size) in enumerate(links.items()):
 				self.download(	thread_count, show_thread_count, link, ipath, uid, pid, size, 
-								file_format, check_face, face_landmarks, keep_old, displacement)
+								file_format, check_face, face_landmarks, keep_old, displacement, crop)
 		print('\ndone :)')
 
 	def download(self, thread_count, show_thread_count, *args):
@@ -117,8 +118,8 @@ class PhotoDownloader(object):
 		if show_thread_count:
 			print('\rthread count: %3d' % thr.active_count(), end='')
 
-def extend(imw, imh, facex, facey, facew, faceh, displacement=None):
-	x, y, w, h = face
+def extend_img(imw, imh, facex, facey, facew, faceh, displacement=None):
+	x, y, w, h = facex, facey, facew, faceh
 	dx, dy = (int(0.3*w), int(0.3*h)) if displacement is None else displacement
 
 	dx1 = dx if x-2*dx > 0 else x/2
@@ -136,60 +137,76 @@ def extend(imw, imh, facex, facey, facew, faceh, displacement=None):
 	# return dimensions of extended face frame and axis shifts
 	return (x-dx, y-dy, w+2*dx, h+2*dy, dx, dy)
 
-def crop(img, x, y, w, h):
-	return img[x:x+w][y:y+h]
+def download(	link, path, uid, pid, size, fmt, check_face, face_landmarks, 
+				keep_old=False, displacement=None, extend=False, crop=False, resize=False):
+	name = '{}/{}original{}{}{}'.format(path, uid, pid, size, fmt)
+	if not check_face:
+		try: url.urlretrieve(link, name)
+		except: return 
 
-
-def download(link, path, uid, pid, size, fmt, check_face, face_landmarks, keep_old=False, displacement=None):
-	"""
-		downloads a file at link into name
-		@args
-			link – (str). Link to a file that needs to be downloaded
-			name – (str). Name to give to the downloaded file
-		@return
-			True if download was ok
-			False if not
-	"""
-	name = '{0}/{1}original{2}{3}{4}'.format(path, uid, pid, size, fmt)
-	if check_face:
-		faces = imp.get_faces(link=link)
-		if faces:
-			try:
-				url.urlretrieve(link, name)
-			except:
-				print('problem at downloading '.format(name))
-				return
-			img = imread(name)
-			imw, imh, imd = img.shape
-			f = open(face_landmarks, 'a')
-			for fid, face in enumerate(faces):
-				x, y, w, h = face['x'], face['y'], face['width'], face['height']
-				x, y, w, h, dx, dy = extend(imw, imh, x, y, w, h, displacement=displacement)
-				cropped = crop(img, x, y, w, h)
-				resized = resize(cropped, CONSTANTS['resize_values'], preserve_range=True)
-				kx = w / CONSTANTS['resize_values'][0]
-				ky = h / CONSTANTS['resize_values'][1]
-				fim_name = '{}/{}photo{}face{}{}'.formate(path, uid, pid, fid, fmt)
-				imwrite(fim_name, resized)
-				face_info = {
-					'user_id':	uid,
-					'photo_id':	pid,
-					'face_id':	fid,
-					'x':		dx*kx,
-					'y':		dy*ky,
-					'width':	(w-2*dx)*kx,
-					'height':	(h-2*dx)*ky,
-					'features': face['features']
-				}
-				f.write('{}\n'.format(face_info))
-			f.close()
+	faces = imp.get_faces(link=link)
+	if len(faces) == 0:
+		print('\rno faces, skipping')
 		if not keep_old and os.path.isfile(name):
 			os.remove(name)
-	else:
-		try:
-			url.urlretrieve(link, name)
-		except:
-			return False
+		return
+
+	if not os.path.isfile(name):
+		try: url.urlretrieve(link, name)
+		except: print('\rproblem at downloading '.format(name))
+		return
+
+	img = imread(name)
+	imw, imh, imd = img.shape
+	f = open(face_landmarks, 'a')
+	for fid, face in enumerate(faces):
+		if crop:
+			fim_name = '{}/{}photo{}face{}{}'.format(path, uid, pid, fid, fmt)
+			if os.path.isfile(fim_name): continue
+		x, y, w, h = face['x'], face['y'], face['width'], face['height']
+		dx = dy = 0
+		kx = ky = 1.
+		if extend:
+			x, y, w, h, dx, dy = extend_img(imw, imh, x, y, w, h, displacement=displacement)
+		if crop:
+			faceimg = imp.crop(img, (x, y, w, h))
+		if resize:
+			kx = w / CONSTANTS['resize_values'][0]
+			ky = h / CONSTANTS['resize_values'][1]
+			faceimg = resize(faceimg, CONSTANTS['resize_values'], preserve_range=True)
+		face_info = {
+			'user_id':	uid,
+			'photo_id':	pid,
+			'face_id':	fid,
+			'x':		(x+dx)*kx
+			'y':		(y+dy)*ky
+			'width':	(w-2*dx)*kx
+			'height':	(h-2*dy)*ky
+			'features': face['features']
+		}
+		if crop:	
+			imwrite(fim_name, faceimg)
+		else:
+			rect(img, x, y, w, h)
+			features = face.get('features')
+			if features is None: continue
+			eyes = features.get('eyes')
+			for eye in eyes:
+				rect(faceimg, eye['x'], eye['y'], eye['width'], eye['height'], color=(255, 0, 0))
+			nose = features.get('nose')
+				rect(faceimg, nose['x'], nose['y'], nose['width'], nose['height'], color=(0, 255, 255))
+			mouth = features.get('mouth')
+				rect(faceimg, mouth['x'], mouth['y'], mouth['width'], mouth['height'], color=(0, 0, 255))
+		f.write('{}\n'.format(face_info))
+	f.close()
+	if not crop:
+		imwrite(name, img)
+	if not keep_old and os.path.isfile(name):
+		os.remove(name)
+
+def rect(img, x, y, w, h, color=(0,255,0)):
+	imh, imw = img.shape[0:2]
+	rectangle(img, (x, y), (x+w, y+h), color, 1)
 
 """
 	Available values of field 'photo_type'

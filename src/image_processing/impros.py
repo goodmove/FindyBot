@@ -210,51 +210,48 @@ class ImageProcessor(object):
         return (X, Y, w/3, height)
 
     @staticmethod
-    def crop(img, dims, path, fn, full_path=None, resize=False, dsize=None):
+    def crop(img, dims):
         """
             @args:
                 img - (numpy.array); image to crop from
                 dims - (tuple); position and dimesnions of image to crop | (x, y, w, h)
-                path - (str); path name to save into
-                fn - (str); filename to save with
-                full_path - (str); if set, overrides path and fn entirely
-                resize - (bool); True if cropped `img` needs to be resized
-                dsize - (tuple); dimensions to resize to
         """
-        fmt = 'jpg'
         x, y, w, h = dims
-
         return img[y:y+h, x:x+w]
 
     @staticmethod
-    def get_faces(link=None, filename=None):
+    def get_faces(link=None, filename=None, features=True):
         if link is None and filename is None:
             raise Exception('bad arguments')
         if link is not None:
             response = requests.get("https://apicloud-facerect.p.mashape.com/process-url.json",
                 params={
-                    'url': link
+                    'url': link,
+                    'features': features
                 },
                 headers={
                     "X-Mashape-Key": "KAYR0pJ7v4mshZv89eZehTaFHEH5p1aHcH6jsnv2HKQQP0mqry",
                     "Accept": "application/json"
                 }
-            ).json()
-            if 'error' in response:
-                return None
-            return response['faces']
+            )
         if filename is not None:
             response = requests.post("https://apicloud-facerect.p.mashape.com/process-file.json",
                 params={
-                    "image": open(filename, mode="r")
+                    "image": open(filename, mode="r"),
+                    'features': features
                 },
                 headers={
                     "X-Mashape-Key": "KAYR0pJ7v4mshZv89eZehTaFHEH5p1aHcH6jsnv2HKQQP0mqry"
                 }
-            ).json()
-            if 'error' in response:
-                return None
-            return response['faces']
+            )
+        try:
+            json = response.json()
+        except:
+            print(response)
+            return []
+        if 'error' in json:
+            return []
+        return json['faces']
 
     @staticmethod
     def rotate_img(img, deg, anchor=None):
