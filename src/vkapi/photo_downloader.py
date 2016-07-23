@@ -55,7 +55,8 @@ class PhotoDownloader(object):
 
 	def downloadAll(self, photo_count=10, thread_count=10, show_thread_count=False, check_face=False,
 					path='photos', face_landmarks='landmarks.txt', file_format='.jpg', photo_type='m', 
-					no_service_albums=0, create_id_folders=False, keep_old=False, displacement=None, crop=False):
+					no_service_albums=0, create_id_folders=False, keep_old=False, displacement=None, 
+					extend=False, crop=False, resize=False):
 		"""
 			downloads photo_count photos for each id in self.ids and stores them in path directory.
 			Photos for each id will be in separate package with name id
@@ -104,7 +105,8 @@ class PhotoDownloader(object):
 						links[size['src']] = '{0}{1}x{2}'.format(photo_type, size['width'], size['height'])
 			for pid, (link, size) in enumerate(links.items()):
 				self.download(	thread_count, show_thread_count, link, ipath, uid, pid, size, 
-								file_format, check_face, face_landmarks, keep_old, displacement, crop)
+								file_format, check_face, face_landmarks, keep_old, displacement,
+								extend, crop, resize)
 		print('\ndone :)')
 
 	def download(self, thread_count, show_thread_count, *args):
