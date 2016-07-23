@@ -239,7 +239,7 @@ class ImageProcessor(object):
                     "X-Mashape-Key": "KAYR0pJ7v4mshZv89eZehTaFHEH5p1aHcH6jsnv2HKQQP0mqry",
                     "Accept": "application/json"
                 }
-            )
+            ).json()
             if 'error' in response:
                 return None
             return response['faces']
