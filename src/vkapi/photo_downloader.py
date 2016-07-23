@@ -70,7 +70,7 @@ class PhotoDownloader(object):
 					'no_service_albums':	0,
 					'rev':					1,
 					'photo_sizes':			1,
-					'offset':				offset*photo_count,
+					'offset':				offset,
 					'count':				photo_count
 				}
 				request = self.api.getRequest(method, payload)
@@ -96,7 +96,7 @@ class PhotoDownloader(object):
 				method = 'photos.getAll' if attempts < 4 else 'photos.get'
 				downloadPack(offset, attempts, method)
 				attempts-=1
-				offset+=1
+				offset+=photo_count
 				if attempts == 3: offset = 0
 
 		print('\ndone :)')

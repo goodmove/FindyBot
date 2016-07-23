@@ -1,8 +1,10 @@
-from skimage.transform import pyramid_gaussian
 from image_processing.impros import ImageProcessor as impros
 from image_processing.clf_constants import CONSTANTS
+from skimage.transform import pyramid_gaussian
+from sklearn.cluster import KMeans
 from skimage import feature
 import numpy as np
+import pandas
 import shutil
 import csv
 import cv2
@@ -33,14 +35,14 @@ def add_hog_feature(img, path):
     vector = np.append(vector, [user_id])
 
     # turn vector into csv formated string
-    with open('./image_processing/data/data_hog.csv', 'a+') as csvfile:
+    with open('./image_processing/data/user_data/data_hog_' + user_id + '.csv', 'a') as csvfile:
         writer = csv.writer(csvfile, strict=True)
         writer.writerow(vector)
 
 def get_faces(path, faces, shift_values):
     """
         @descr:
-            looks for face in the image and returnds its extended rectangle
+            looks for face in the image and returns its extended rectangle
     """
     img = cv2.imread(path, 0)
     if img is None:
@@ -92,6 +94,34 @@ def propagate_images(path, face_rect, num_of_shifts, randomize, resize_values):
         # cv2.imwrite(path[:-4] + str(n) + '_.jpg', resized)
         # cv2.imwrite(path[:-4] + str(n) + '__.jpg', mirrored)
 
+MIN = 120
+
+def filter_data(path):
+    data = pandas.read_csv(path, header=None)
+    X = data.copy().iloc[:, :-1]
+
+    cluster = KMeans(n_clusters=5, precompute_distances=True, n_jobs=1, random_state=241)
+    cluster.fit(X)
+
+    labels = cluster.labels_
+    unique, counts = np.unique(labels, return_counts=True)
+    m = sorted(np.asarray((unique, counts)).T, key=lambda x: x[1], reverse=True)[:3]
+    m = [x[0] for x in m]
+    inds = [i for i in range(X.shape[0]) if labels[i] in m]
+
+    if len(inds) < MIN:
+        return False
+
+    vectors = data.iloc[inds, :]
+    with open('./image_processing/data/data_filtered.csv', 'a') as csvfile:
+        for ind in range(len(vectors)):
+            writer = csv.writer(csvfile, strict=True)
+            v = vectors.iloc[ind, :].tolist()
+            v[-1] = int(v[-1])
+            writer.writerow(v)
+
+    return True
+
 def prep_data_hog(root, num_of_shifts=10, randomize=True, shift_values=None, resize_values=CONSTANTS['resize_values']):
     """
         @descr:
@@ -99,7 +129,7 @@ def prep_data_hog(root, num_of_shifts=10, randomize=True, shift_values=None, res
     """
     for dir in os.listdir(root):
         if os.path.isdir(root+'/'+dir):
-            if len(os.listdir(root+'/'+dir)) < 7:
+            if len(os.listdir(root+'/'+dir)) < 8:
                 shutil.rmtree(root+'/'+dir)
                 continue
             # `faces` is initialized for future extension to multi-detection
@@ -111,3 +141,11 @@ def prep_data_hog(root, num_of_shifts=10, randomize=True, shift_values=None, res
                     faces = get_faces(path, faces, shift_values)
                     if len(faces) > 0:
                         propagate_images(path, faces.pop(0), num_of_shifts, randomize, resize_values)
+
+    dpath = './image_processing/data/user_data'
+    for fn in os.listdir(dpath):
+        path = dpath+'/'+fn
+        if os.path.isfile(path):
+            if not filter_data(path):
+                user_id = fn.split('.')[0].split('_')[-1]
+                shutil.rmtree(root+'/'+user_id)
