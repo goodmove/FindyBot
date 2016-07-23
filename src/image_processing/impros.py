@@ -7,6 +7,7 @@ import numpy as np
 import random
 import cv2
 import os
+import requests
 
 class ImageProcessor(object):
     def __init__(
@@ -224,6 +225,36 @@ class ImageProcessor(object):
         x, y, w, h = dims
 
         return img[y:y+h, x:x+w]
+
+    @staticmethod
+    def get_faces(link=None, filename=None):
+        if link is None and filename is None:
+            raise Exception('bad arguments')
+        if link is not None:
+            response = requests.get("https://apicloud-facerect.p.mashape.com/process-url.json",
+                params={
+                    'url': link
+                },
+                headers={
+                    "X-Mashape-Key": "KAYR0pJ7v4mshZv89eZehTaFHEH5p1aHcH6jsnv2HKQQP0mqry",
+                    "Accept": "application/json"
+                }
+            )
+            if 'error' in response:
+                return None
+            return response['faces']
+        if filename is not None:
+            response = requests.post("https://apicloud-facerect.p.mashape.com/process-file.json",
+                params={
+                    "image": open(filename, mode="r")
+                },
+                headers={
+                    "X-Mashape-Key": "KAYR0pJ7v4mshZv89eZehTaFHEH5p1aHcH6jsnv2HKQQP0mqry"
+                }
+            )
+            if 'error' in response:
+                return None
+            return response['faces']
 
     @staticmethod
     def rotate_img(img, deg, anchor=None):
