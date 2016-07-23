@@ -1,5 +1,5 @@
-from image_processing import detection_helpers as det_hlp
-from image_processing.clf_constants import CONSTANTS
+from src.image_processing import detection_helpers as det_hlp
+from src.image_processing.clf_constants import CONSTANTS
 from skimage.transform import pyramid_gaussian
 from skimage import transform
 import matplotlib as mpl
@@ -109,10 +109,11 @@ class ImageProcessor(object):
 
         return faces[0]
 
-    def detect_eyes(self, img, visualize=False):
+    @staticmethod
+    def detect_eyes(img, visualize=False):
         eye_cascade = cv2.CascadeClassifier();
 
-        if not eye_cascade.load(self.eye_clf):
+        if not eye_cascade.load(CONSTANTS['eye_clf']):
             print('Couldn\'t load eye classifier xml')
             return;
 
@@ -207,7 +208,8 @@ class ImageProcessor(object):
 
         return (X, Y, w/3, height)
 
-    def crop(self, img, dims, path, fn, full_path=None, resize=False, dsize=None):
+    @staticmethod
+    def crop(img, dims, path, fn, full_path=None, resize=False, dsize=None):
         """
             @args:
                 img - (numpy.array); image to crop from
@@ -221,15 +223,7 @@ class ImageProcessor(object):
         fmt = 'jpg'
         x, y, w, h = dims
 
-        cropped = img[y:y+h, x:x+w]
-
-        if resize and dsize != None:
-            cropped = self.resize_img(cropped, dsize)
-
-        if not full_path:
-            cv2.imwrite('{0}/{1}_.{2}'.format(path, fn, fmt), cropped)
-        else:
-            cv2.imwrite(full_path, cropped)
+        return img[y:y+h, x:x+w]
 
     @staticmethod
     def rotate_img(img, deg, anchor=None):

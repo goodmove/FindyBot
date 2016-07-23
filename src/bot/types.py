@@ -9,6 +9,7 @@ class Message(object):
 
     def __repr__(self):
         return "<Message> " + str({"id" : self.id, "usr_id" : self.usr_id, "chat_id" : self.chat_id, "text" : self.text, "type" : self.type})
+        
 class EditedMessage(object):
     def __init__(self, data):
         self.id = data.get("id")
