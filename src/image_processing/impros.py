@@ -251,7 +251,7 @@ class ImageProcessor(object):
                 headers={
                     "X-Mashape-Key": "KAYR0pJ7v4mshZv89eZehTaFHEH5p1aHcH6jsnv2HKQQP0mqry"
                 }
-            )
+            ).json()
             if 'error' in response:
                 return None
             return response['faces']
