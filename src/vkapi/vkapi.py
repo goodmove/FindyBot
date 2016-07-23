@@ -1,4 +1,4 @@
-from vkapi.vkauth import VKAuth
+from src.vkapi.vkauth import VKAuth
 import requests
 import os
 import os.path
