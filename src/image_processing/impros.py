@@ -2,6 +2,7 @@ from src.image_processing import detection_helpers as det_hlp
 from src.image_processing.clf_constants import CONSTANTS
 from skimage.transform import pyramid_gaussian
 from skimage import transform
+from src.image_processing.facepp.facepp import API as Facepp
 import matplotlib as mpl
 import numpy as np
 import random
@@ -109,6 +110,34 @@ class ImageProcessor(object):
             return tuple();
 
         return faces[0]
+
+    @staticmethod
+    def detect_faces(path=None, img=None):
+        """
+            @args:
+                path - (str); relative path to the image
+                img - (ndarray); 2-D image array
+            @return:
+                [z] – list of tuples where z is (x, y, w, h) for each detected face
+        """
+        face_cascade = cv2.CascadeClassifier();
+
+        if not face_cascade.load(CONSTANTS['face_clf']):
+            print('Couldn\'t load face classifier xml')
+            return tuple();
+
+        if img is None and not path is None:
+            img = cv2.imread(path, 0)
+        elif img is None and path == None:
+            print('Can\'t open image. Provide either a path or an image array')
+            return tuple()
+
+        if img is None:
+            print('Couldn\'t open file. Path: ', path)
+            return tuple()
+
+        faces = face_cascade.detectMultiScale(img, 1.3, 4)
+        return faces
 
     @staticmethod
     def detect_eyes(img, visualize=False):
@@ -219,6 +248,31 @@ class ImageProcessor(object):
         x, y, w, h = dims
         return img[y:y+h, x:x+w]
 
+        
+    @staticmethod
+    def get_faces_fpp(link):
+        response = requests.get("https://faceplusplus-faceplusplus.p.mashape.com/detection/detect",
+            params={
+                'attribute': 'gender,race',
+                'url': link
+            },
+            headers={
+                "X-Mashape-Key": "rfOVSXuQohmshMrmwqe5mejsYueOp1icOY9jsnjTyfzOLZEkDN",
+                "Accept": "application/json"
+            }
+        )
+        try:
+            json = response.json()
+        except:
+            print(response)
+            return []
+        if 'error' in json:
+            print(json)
+            return []
+        return json
+    
+
+
     @staticmethod
     def get_faces(link=None, filename=None, features=True):
         if link is None and filename is None:
@@ -236,9 +290,11 @@ class ImageProcessor(object):
             )
         if filename is not None:
             response = requests.post("https://apicloud-facerect.p.mashape.com/process-file.json",
-                params={
-                    "image": open(filename, mode="r"),
+                data={
                     'features': features
+                },
+                files={
+                    "image": open(filename, mode="rb")
                 },
                 headers={
                     "X-Mashape-Key": "KAYR0pJ7v4mshZv89eZehTaFHEH5p1aHcH6jsnv2HKQQP0mqry"
@@ -250,6 +306,7 @@ class ImageProcessor(object):
             print(response)
             return []
         if 'error' in json:
+            print(json)
             return []
         return json['faces']
 
