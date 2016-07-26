@@ -1,10 +1,13 @@
 from src.vkapi.vkauth import VKAuth
 import requests
-import os
 import os.path
-import time
 
-account = {}
+try:
+	from account import ACCOUNT
+	account = ACCOUNT
+except:
+	print('failed to get account information from "account.py"')
+	account = {}
 
 def updateAccountInfo():
 	global account
