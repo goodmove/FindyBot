@@ -4,8 +4,7 @@ logs/**
 !logs/Logger.py
 dev
 main_copy.py
-_test
-test.py
+test*
 photos
 old_photos
 account
