@@ -6,7 +6,7 @@ CONFIG = {
         'eye_clf1': 'src/image_processing/haar_clfs/haarcascade_eye.xml',
         'mouth_clf': 'src/image_processing/haar_clfs/mouth.xml'
     },
-    'hog_config': {
+    'hog_conf': {
         'resize_values': (150, 150),
         'num_of_shifts': 10,
         'shift_values': None,

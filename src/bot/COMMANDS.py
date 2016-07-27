@@ -1,4 +1,4 @@
-from src.image_processing.impros import ImageProcessor as impros
+import src.image_processing.impros as impros
 import src.predict as predictor
 import requests
 import random
@@ -15,11 +15,14 @@ regex = re.compile(
         r'(?:/?|[/?]\S+)$', re.IGNORECASE)
 
 def download_photo(file_path, url):
+    print('downloading')
     r = requests.get(url, stream=True)
     if r.status_code == 200:
         with open(file_path, 'wb') as f:
             for chunk in r.iter_content(1024):
                 f.write(chunk)
+    else:
+        print('Couldn\'t donwload photo. Url:', url)
 
 def predict(file_path, url):
     download_photo(file_path, url)
