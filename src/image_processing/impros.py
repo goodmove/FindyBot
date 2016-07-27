@@ -1,5 +1,5 @@
 from src.image_processing import detection_helpers as det_hlp
-from src.image_processing.clf_constants import CONSTANTS
+from src.image_processing.impros_conf import CONFIG
 from skimage.transform import pyramid_gaussian
 from skimage import transform
 import matplotlib as mpl
@@ -10,61 +10,47 @@ import cv2
 import os
 
 class ImageProcessor(object):
-    def __init__(
-                self,
-                face_clf=CONSTANTS['face_clf'],
-                eye_clf=CONSTANTS['eye_clf'],
-                mouth_clf=CONSTANTS['mouth_clf']
-                ):
-        self.face_clf = face_clf
-        self.eye_clf = eye_clf
-        self.mouth_clf = mouth_clf
+    def __init__(self):
+        pass;
 
     @staticmethod
-    def detect_face_ext(bounds=None, path=None, img=None, visualize=False):
+    def detect_face_ext(displ=None, path=None, img=None, visualize=False):
         """
             @descr:
                 Detects face and localizes it with a rectangle. Then extends the
-                rectangle by given `bounds` values, if they don't move the rectangle
-                beyond image borders. Otherwise, `bounds` is half the distance to
+                rectangle by given `displ` values, if they don't move the rectangle
+                beyond image borders. Otherwise, `displ` is half the distance to
                 the image borders.
             @args:
-                bounds - (tuple(dx, dy)); max shift by Ox and Oy axis respectively
+                displ - (tuple(dx, dy)); max shift by Ox and Oy axis respectively
             @return:
                 (tuple) - dimensions of extended face frame and axis shifts
         """
-        face = ImageProcessor.detect_face(path=path, img=img)
+
+        face = ImageProcessor.detect_faces(path=path, img=img, count=1)
 
         if len(face) == 0:
-            # print('No face detected')
-            return tuple()
+            print('No face detected')
+            return []
 
         if img is None:
             img = cv2.imread(path, 0)
-            if img is None:
-                print('Couldn\'t open image. Path:', path)
-                return tuple()
 
-        imw, imh = img.shape
-        x, y, w, h = face
-        dx, dy = (int(0.3*w), int(0.3*h)) if bounds is None else bounds
+        if img is None:
+            print('Couldn\'t open file. Path: ', path)
+            return []
 
-        dx1 = dx if x-2*dx > 0 else x/2
-        dx2 = dx if imw  > (x+w) + 2*dx else (imw - (x+w))/2
-        dx = int(min(dx1, dx2))
-
-        dy1 = dy if y-2*dy >= 0 else y/2
-        dy2 = dy if imh  >= (y+h) + 2*dy else (imh - (y+h))/2
-        dy = int(min(dy1, dy2))
+        face = face[0]
+        dx, dy = ImageProcessor.compute_shift(img.shape, face, displ)
 
         # exception handling. a weird case.
         if dx < 0 or dy < 0:
-            return tuple()
+            print('weird case occured! Path:', path)
+            return []
 
-        X = x-dx
-        Y = y-dy
-        W = w+2*dx
-        H = h+2*dy
+        x, y, w, h = face
+        X, Y = x-dx, y-dy
+        W, H = w+2*dx, h+2*dy
 
         if visualize:
             cv2.rectangle(img,(x,y),(x+w,y+h),(0,0,255),2)
@@ -77,72 +63,62 @@ class ImageProcessor(object):
         return (X, Y, W, H, dx, dy)
 
     @staticmethod
-    def detect_face(path=None, img=None):
+    def compute_shift(shape, face, displ):
+        imw, imh = shape
+        x, y, w, h = face
+        dx, dy = (int(0.3*w), int(0.3*h)) if displ is None else displ
+
+        dx1 = dx if x-2*dx >= 0 else x/2
+        dx2 = dx if imw  >= (x+w) + 2*dx else (imw - (x+w))/2
+        dx = int(min(dx1, dx2))
+
+        dy1 = dy if y-2*dy >= 0 else y/2
+        dy2 = dy if imh  >= (y+h) + 2*dy else (imh - (y+h))/2
+        dy = int(min(dy1, dy2))
+
+        return (dx, dy)
+
+    @staticmethod
+    def detect_faces(path=None, img=None, count=None):
         """
             @args:
                 path - (str); relative path to the image
                 img - (ndarray); 2-D image array
+                count - (int); number of faces to return. if None, returns all faces that were detected
             @return:
-                (x, y, w, h) – a tuple for one face detected
-                () – empty tuple if zero or more than one face were detected
+                [z] – list of `count` tuples at max (if count is set) where z is (x, y, w, h) for each detected face
         """
-        face_cascade = cv2.CascadeClassifier();
-
-        if not face_cascade.load(CONSTANTS['face_clf']):
-            print('Couldn\'t load face classifier xml')
-            return tuple();
-
-        if img is None and not path is None:
+        if img is None and path is None:
+            print('Can\'t process image. Provide either a path or an image array')
+            return []
+        elif img is None and not path is None:
             img = cv2.imread(path, 0)
-        elif img is None and path == None:
-            print('Can\'t open image. Provide either a path or an image array')
-            return tuple()
 
         if img is None:
             print('Couldn\'t open file. Path: ', path)
-            return tuple()
+            return []
+
+        face_cascade = cv2.CascadeClassifier();
+
+        if not face_cascade.load(CONFIG['haar_conf']['face_clf']):
+            print('Couldn\'t load face classifier xml')
+            return [];
 
         faces = face_cascade.detectMultiScale(img, 1.22, 6)
 
         # if no faces found or there are too many, return empty tuple
-        if len(faces) != 1:
-            return tuple();
-
-        return faces[0]
-
-    @staticmethod
-    def detect_faces(path=None, img=None):
-        """
-            @args:
-                path - (str); relative path to the image
-                img - (ndarray); 2-D image array
-            @return:
-                [z] – list of tuples where z is (x, y, w, h) for each detected face
-        """
-        face_cascade = cv2.CascadeClassifier();
-
-        if not face_cascade.load(CONSTANTS['face_clf']):
-            print('Couldn\'t load face classifier xml')
-            return tuple();
-
-        if img is None and not path is None:
-            img = cv2.imread(path, 0)
-        elif img is None and path == None:
-            print('Can\'t open image. Provide either a path or an image array')
-            return tuple()
-
-        if img is None:
-            print('Couldn\'t open file. Path: ', path)
-            return tuple()
-
-        faces = face_cascade.detectMultiScale(img, 1.3, 4)
-        return faces
+        if count is None:
+            return faces
+        if not count is None and len(faces) < count:
+            return [];
+        return faces[:count]
 
     @staticmethod
-    def detect_eyes(img, clf, visualize=False):
+    def detect_eyes(img, visualize=False):
+        if img is None: return;
+
         eye_cascade = cv2.CascadeClassifier();
-
-        if not eye_cascade.load(clf):
+        if not eye_cascade.load(CONFIG['haar_conf']['eye_clf']):
             print('Couldn\'t load eye classifier xml')
             return;
 
@@ -158,10 +134,12 @@ class ImageProcessor(object):
 
         return eyes
 
-    def detect_mouth(self, img, visualize=False):
-        smile_cascade = cv2.CascadeClassifier();
+    @staticmethod
+    def detect_mouth(img, visualize=False):
+        if img is None: return;
 
-        if not smile_cascade.load(self.mouth_clf):
+        smile_cascade = cv2.CascadeClassifier();
+        if not smile_cascade.load(CONFIG['haar_conf']['mouth_clf']):
             print('Couldn\'t load smile classifier xml')
             return;
 
@@ -188,6 +166,7 @@ class ImageProcessor(object):
                 img - (ndarray); image to detect nose in
                 eyes_rect - (ndarray); [x, y, w, h] for rectangle, which localizes eyes
         """
+        if img is None: return;
         _eyes_rect = (eyes_rect[0], eyes_rect[1], eyes_rect[2], eyes_rect[3])
         return ImageProcessor._detect_nose(img, _eyes_rect, ImageProcessor.detect_eyeballs(img, _eyes_rect, visualize), visualize=visualize)
 
@@ -253,7 +232,7 @@ class ImageProcessor(object):
         """
         x, y, w, h = dims[:4]
         return img[y:y+h, x:x+w]
-    
+
     @staticmethod
     def extend(shape, dims, displacement=None):
         imw, imh = shape[:2]
@@ -302,7 +281,7 @@ class ImageProcessor(object):
         return json
 
     @staticmethod
-    def get_faces(link=None, filename=None, features=True):
+    def get_faces_facerect(link=None, filename=None, features=True):
         if link is None and filename is None:
             raise Exception('bad arguments')
         if link is not None:
@@ -316,11 +295,14 @@ class ImageProcessor(object):
                     "Accept": "application/json"
                 }
             )
-        if filename is not None:
+        elif filename is not None:
             response = requests.post("https://apicloud-facerect.p.mashape.com/process-file.json",
                 files={ "image": open(filename, mode="rb") },
                 data={ 'features': features },
-                headers={ "X-Mashape-Key": "KAYR0pJ7v4mshZv89eZehTaFHEH5p1aHcH6jsnv2HKQQP0mqry" }
+                headers={
+                    "X-Mashape-Key": "KAYR0pJ7v4mshZv89eZehTaFHEH5p1aHcH6jsnv2HKQQP0mqry",
+                    "Accept": "application/json"
+                }
             )
         try:
             json = response.json()
@@ -374,5 +356,5 @@ class ImageProcessor(object):
         return img
 
     @staticmethod
-    def test():
-        print('works')
+    def check_import():
+        print('Image processor imported successfuly')

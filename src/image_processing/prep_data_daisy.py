@@ -1,39 +1,13 @@
 from src.image_processing.impros import ImageProcessor as impros
-from src.image_processing.clf_constants import CONSTANTS
+from src.image_processing.impros_conf import CONFIG
 from sklearn.externals import joblib
-from skimage import feature
 import matplotlib.pyplot as plt
+from skimage import feature
 import numpy as np
 import shutil
 import cv2
 import csv
 import os
-
-def add_hog_feature(img, path):
-    """
-        @descr:
-            adds an object-feature vector with class label, copmuted with HOG, into csv file
-    """
-    # get HOG descriptor feature vector
-    try:
-        vector = feature.hog(
-                        img,
-                        orientations=CONSTANTS['orientations'],
-                        pixels_per_cell=CONSTANTS['pixels_per_cell'],
-                        cells_per_block=CONSTANTS['cells_per_block'],
-                        transform_sqrt=CONSTANTS['transform_sqrt']
-                        )
-    except:
-        print('File: prep_data_hog.py')
-        print('Error while extracting HOG feature vector.')
-
-    user_id = path.split('/')[-2]
-    vector = np.append(vector, [user_id])
-
-    # turn vector into csv formated string
-    with open('./image_processing/data/data_hog.csv', 'a+') as csvfile:
-        writer = csv.writer(csvfile, strict=True)
-        writer.writerow(vector)
 
 def scan_img(path=None, link=None):
     """
@@ -58,11 +32,11 @@ def scan_img(path=None, link=None):
     x,y,w,h = face
     face_img = img[y:y+h, x:x+w]
 
-    eyes_rect = impros.detect_eyes(face_img, CONSTANTS['eye_clf'])
+    eyes_rect = impros.detect_eyes(face_img, CONFIG['haar_conf']['eye_clf'])
     rect_is_found=True
     if len(eyes_rect) == 0:
         # print('Eye rectangle not found')
-        eyes_rect = impros.detect_eyes(face_img, CONSTANTS['eye_clf1'])
+        eyes_rect = impros.detect_eyes(face_img, CONFIG['haar_conf']['eye_clf1'])
         rect_is_found=False
         if len(eyes_rect) != 2:
             # print('Eyes not detected correctly')
@@ -102,10 +76,10 @@ def scan_img(path=None, link=None):
     # cv2.waitKey(0)
     # os.remove(path)
 
-    face_img = impros.resize_img(face_img, CONSTANTS['face_size'])
-    left_eye = impros.resize_img(left_eye, CONSTANTS['le_size'])
-    right_eye = impros.resize_img(right_eye, CONSTANTS['re_size'])
-    nose_img = impros.resize_img(nose_img, CONSTANTS['nose_size'])
+    face_img = impros.resize_img(face_img, CONFIG['daisy_conf']['face_size'])
+    left_eye = impros.resize_img(left_eye, CONFIG['daisy_conf']['le_size'])
+    right_eye = impros.resize_img(right_eye, CONFIG['daisy_conf']['re_size'])
+    nose_img = impros.resize_img(nose_img, CONFIG['daisy_conf']['nose_size'])
 
 
     face_daisy = feature.daisy(face_img, step=8, radius=24, rings=3, histograms=6,
@@ -132,15 +106,6 @@ def scan_img(path=None, link=None):
     write_csv('le', le_daisy, user_id)
     write_csv('re', re_daisy, user_id)
     write_csv('nose', nose_daisy, user_id)
-
-    # npath = path.split('.')[-2]
-    # cv2.imwrite(npath + 'f' + '.jpg', face_img)
-    # cv2.imwrite(npath + 'l' + '.jpg', left_eye)
-    # cv2.imwrite(npath + 'r' + '.jpg', right_eye)
-    # cv2.imwrite(npath + 'n' + '.jpg', nose)
-
-    # cv2.imshow('img', di)
-    # cv2.waitKey(0)
 
 
 def prep_data_daisy(root):

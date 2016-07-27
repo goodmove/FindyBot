@@ -1,5 +1,5 @@
 from src.image_processing.impros import ImageProcessor as impros
-from src.image_processing.clf_constants import CONSTANTS
+from src.image_processing.impros_conf import CONFIG
 import shutil
 import cv2
 import os
@@ -14,10 +14,10 @@ def validate_img(path):
     x,y,w,h = face
     face_img = img[y:y+h, x:x+w]
 
-    eyes_rect = impros.detect_eyes(face_img, CONSTANTS['eye_clf'])
+    eyes_rect = impros.detect_eyes(face_img, CONFIG['haar_conf']['eye_clf'])
     if len(eyes_rect) == 0:
         print('Eye rectangle not found')
-        eyes_rect = impros.detect_eyes(face_img, CONSTANTS['eye_clf1'])
+        eyes_rect = impros.detect_eyes(face_img, CONFIG['haar_conf']['eye_clf1'])
         if len(eyes_rect) != 2:
             print('Eyes not detected correctly')
             return False
