@@ -49,6 +49,7 @@ def breed_images(path, face_rect, randomize, csvfile):
         return;
 
     resize_values = CONFIG['hog_conf']['resize_values']
+    num_of_shifts = CONFIG['hog_conf']['num_of_shifts']
     x,y,w,h,dx,dy = face_rect
 
     for n in range(num_of_shifts):
