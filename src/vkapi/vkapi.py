@@ -9,6 +9,22 @@ except:
 	print('failed to get account information from "account.py"')
 	account = {}
 
+def getAccountInfo(*args):
+	"""
+		@return
+			if 0 args returns account
+			if 1 arg returns account[arg]
+			otherways returns list of account[arg] for each arg in args
+	"""
+	l = []
+	if len(args) == 0:
+		return account
+	if len(args) == 1:
+		return account[args[0]] if args[0] in account else None
+	for i in args:
+		l.append(account[i] if i in account else None)
+	return l
+
 def updateAccountInfo():
 	global account
 	try:
@@ -22,6 +38,9 @@ def updateAccountFile():
 	f.close()
 
 def checkAccount(*args):
+	"""
+		Checks specified in args account fields for existence and asks user for nonexistent
+	"""
 	global account
 	modified = False
 	for a in args:
