@@ -22,13 +22,17 @@ CONFIG = {
         'nose_size': (64, 56)
     },
     'clf_svm': {
-        'svm_hog_clf_path': 'src/image_processing/clfs/rbf/svm_hog_clf.pkl'
+        'svm_hog_clf_path': 'src/image_processing/ML/hog/clfs/rbf/svm_hog_clf.pkl'
     },
     'data': {
-        'hog_data_path': './image_processing/data/hog/data_hog.csv',
-        'daisy_data_face_path': './image_processing/data/daisy/data_daisy_face.csv',
-        'daisy_data_le_path': './image_processing/data/daisy/data_daisy_le.csv',
-        'daisy_data_re_path': './image_processing/data/daisy/data_daisy_re.csv',
-        'daisy_data_nose_path': './image_processing/data/daisy/data_daisy_nose.csv'
+        'hog_data_path': 'src/image_processing/ML/hog/data_hog.csv',
+        'daisy_data_face_path': './image_processing/ML/daisy/data_daisy_face.csv',
+        'daisy_data_le_path': './image_processing/ML/daisy/data_daisy_le.csv',
+        'daisy_data_re_path': './image_processing/ML/daisy/data_daisy_re.csv',
+        'daisy_data_nose_path': './image_processing/ML/daisy/data_daisy_nose.csv',
+        'daisy_features_face_path': './image_processing/ML/daisy/data_daisy_face.csv',
+        'daisy_features_le_path': './image_processing/ML/daisy/data_daisy_le.csv',
+        'daisy_features_re_path': './image_processing/ML/daisy/data_daisy_re.csv',
+        'daisy_features_nose_path': './image_processing/ML/daisy/data_daisy_nose.csv'
     }
 }

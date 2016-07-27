@@ -1,5 +1,5 @@
-import src.image_processing.impros as impros
 from src.image_processing.impros_conf import CONFIG
+import src.image_processing.impros as impros
 import shutil
 import cv2
 import os

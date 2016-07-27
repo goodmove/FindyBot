@@ -1,5 +1,5 @@
-import src.image_processing.impros as impros
 from src.image_processing.impros_conf import CONFIG
+import src.image_processing.impros as impros
 from sklearn.externals import joblib
 import matplotlib.pyplot as plt
 from skimage import feature
