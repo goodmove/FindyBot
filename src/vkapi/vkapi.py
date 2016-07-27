@@ -63,7 +63,7 @@ def checkToken(token=None):
 			token = account['token']
 		else: return False
 
-	r = getRequest('secure.checkToken', token=token)
+	r = requests.get('https://api.vk.com/method/secure.checkToken', params={'access_token': token})
 	if 'error' in r:
 		print(r['error']['error_msg'])
 		return False
@@ -74,8 +74,7 @@ def auth(f=False):
 		Authorizes using the file 'account.py'. Asks user for account info if it's not enough
 	"""
 	checkAccount('permissions', 'app_id', 'api_v')
-
-	if checkToken() and not f:
+	if not checkToken() and not f:
 		print('Your token is still working, no need to authorize.')
 		print('Pass f=True argument if you want to force authorization')
 		return
@@ -113,10 +112,10 @@ def getRequest(method, **params):
 		print('\rerror: ' + msg)
 		if 'User authorization failed' in msg:
 			auth()
-			return getRequest(method, params)
+			return getRequest(method, **params)
 		elif 'Too many requests per second' in msg:
 			time.sleep(0.1)
-			return getRequest(method, params)
+			return getRequest(method, **params)
 	return j
 
 def findFriends(id=None, depth=1, file_name='ids.py', keep_old=False):

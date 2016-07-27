@@ -1,19 +1,20 @@
-import threading
+from src.image_processing import impros
 from urllib.request import urlretrieve as retrieve
+import threading
 import os
 
-NO_FILTER = 0
-ONE_FACE = 1
-ANY = 2
 
 class Downloader(object):
+	NO_FILTER = 0
+	ONE_FACE = 1
+	ANY = 2
 	def __init__(self, max_threads=10):
 		self.nthreads = 0
 		self.max_threads = max_threads
 		self.queue = [] # list of *args tuples for __download
 
-	def push_download(self, *args):
-		queue.append(args)
+	def push_download(self, *args, **kwargs):
+		self.queue.append((args, kwargs))
 		self.update()
 
 	def _finish_download(self):
@@ -21,25 +22,26 @@ class Downloader(object):
 		self.update()
 
 	def update(self):
-		while self.nthreads < self.max_threads:
-			self._download(queue.pop(0))
+		while self.nthreads < self.max_threads and len(self.queue) > 0:
+			args, kwargs = self.queue.pop(0)
+			self._download(*args, **kwargs)
 
 	def _download(self, *args, **kwargs):
 		t = threading.Thread(	target=self.__download, 
 								name='download-%d' % self.nthreads,
-								args=(self,)+args,
+								args=args,
 								kwargs=kwargs)
 		self.nthreads += 1
 		t.start()
 
 	def __download(self, link, path, filter=ONE_FACE):
 		retrieve(link, path)
-		if filter is not NO_FILTER:
-			faces = detect_faces(path)
-			if filter is ONE_FACE:
+		if filter is not self.NO_FILTER:
+			faces = impros.detect_faces(path=path)
+			if filter is self.ONE_FACE:
 				if len(faces) != 1:
 					os.remove(path)
-			elif filter is ANY:
+			elif filter is self.ANY:
 				if len(faces) == 0:
 					os.remove(path)
 			else:

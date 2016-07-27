@@ -1,22 +1,33 @@
-from src.vkapi import photo_downloader as pd
+from src.vkapi import vkapi
+from src.vkapi.downloader import Downloader
+from ids import IDS as ids
+import os
+import os.path
 
-p = pd.PhotoDownloader()
-# p.api.findFriends(p.user_id, depth=1, file_name='ids')
-p.updateIds()
-p.downloadAll(
-	photo_count=80, 
-	thread_count=10, 
-	show_thread_count=True, 
-	check_face=True,
-	path='photos', 
-	face_landmarks='landmarks.txt', 
-	file_format='.jpg', 
-	photo_type='x', 
-	no_service_albums=0, 
-	create_id_folders=False, 
-	keep_old=False, 
-	displacement=None, 
-	extend=False, 
-	crop=False, 
-	resize=False
-)
+def downloadAllPhotos(filter=Downloader.ONE_FACE, size='m', count=10, no_service_albums=0, offset=0, path='photos'):
+	downloader = Downloader()
+	if not os.path.exists(path):
+		os.makedirs(path)
+	for uid in ids:
+		upath = '{}/{}'.format(path, uid)
+		if not os.path.exists(upath):
+			os.makedirs(upath)
+		r = vkapi.getRequest('photos.getAll', 
+			count=count, 
+			owner_id=uid, 
+			photo_sizes=1,
+			no_service_albums=no_service_albums,
+			offset=offset
+			)
+		if 'error' in r: continue
+		photos = r['response']
+		for photo in photos[1:]:
+			photo_path = '{}/{}.jpg'.format(upath, photo['pid'])
+			sizes = photo['sizes']
+			for s in sizes:
+				if s['type'] is size:
+					downloader.push_download(s['src'], photo_path, filter=Downloader.ONE_FACE)
+					break
+
+
+downloadAllPhotos()
