@@ -2,7 +2,6 @@ from src.image_processing import detection_helpers as det_hlp
 from src.image_processing.clf_constants import CONSTANTS
 from skimage.transform import pyramid_gaussian
 from skimage import transform
-from src.image_processing.facepp.facepp import API as Facepp
 import matplotlib as mpl
 import numpy as np
 import requests
@@ -112,9 +111,6 @@ class ImageProcessor(object):
         return faces[0]
 
     @staticmethod
-<<<<<<< HEAD
-    def detect_eyes(img, clf, visualize=False):
-=======
     def detect_faces(path=None, img=None):
         """
             @args:
@@ -143,8 +139,7 @@ class ImageProcessor(object):
         return faces
 
     @staticmethod
-    def detect_eyes(img, visualize=False):
->>>>>>> 86a518559bd20bd7c44ee71af0b152b986109b3a
+    def detect_eyes(img, clf, visualize=False):
         eye_cascade = cv2.CascadeClassifier();
 
         if not eye_cascade.load(clf):
@@ -256,10 +251,34 @@ class ImageProcessor(object):
                 img - (numpy.array); image to crop from
                 dims - (tuple); position and dimesnions of image to crop | (x, y, w, h)
         """
-        x, y, w, h = dims
+        x, y, w, h = dims[:4]
         return img[y:y+h, x:x+w]
+    
+    @staticmethod
+    def extend(shape, dims, displacement=None):
+        imw, imh = shape[:2]
+        x, y, w, h = dims
+        dx, dy = (int(0.3*w), int(0.3*h)) if displacement is None else displacement
 
-        
+        dx1 = dx if x-2*dx > 0 else x/2
+        dx2 = dx if imw  > (x+w) + 2*dx else (imw - (x+w))/2
+        dx = max(int(min(dx1, dx2)), 0)
+
+        dy1 = dy if y-2*dy >= 0 else y/2
+        dy2 = dy if imh  >= (y+h) + 2*dy else (imh - (y+h))/2
+        dy = max(int(min(dy1, dy2)), 0)
+
+        # exception handling. a weird case.
+        if dx < 0 or dy < 0:
+            return None
+
+        # return dimensions of extended face frame and axis shifts
+        return [x-dx, y-dy, w+2*dx, h+2*dy, dx, dy]
+
+    @staticmethod
+    def resize(img, size=CONSTANTS['resize_values'], preserve_range=True):
+        return transform.resize(img, size, preserve_range=preserve_range)
+
     @staticmethod
     def get_faces_fpp(link):
         response = requests.get("https://faceplusplus-faceplusplus.p.mashape.com/detection/detect",
@@ -281,8 +300,6 @@ class ImageProcessor(object):
             print(json)
             return []
         return json
-    
-
 
     @staticmethod
     def get_faces(link=None, filename=None, features=True):
@@ -301,21 +318,9 @@ class ImageProcessor(object):
             )
         if filename is not None:
             response = requests.post("https://apicloud-facerect.p.mashape.com/process-file.json",
-<<<<<<< HEAD
                 files={ "image": open(filename, mode="rb") },
                 data={ 'features': features },
                 headers={ "X-Mashape-Key": "KAYR0pJ7v4mshZv89eZehTaFHEH5p1aHcH6jsnv2HKQQP0mqry" }
-=======
-                data={
-                    'features': features
-                },
-                files={
-                    "image": open(filename, mode="rb")
-                },
-                headers={
-                    "X-Mashape-Key": "KAYR0pJ7v4mshZv89eZehTaFHEH5p1aHcH6jsnv2HKQQP0mqry"
-                }
->>>>>>> 86a518559bd20bd7c44ee71af0b152b986109b3a
             )
         try:
             json = response.json()
@@ -349,7 +354,6 @@ class ImageProcessor(object):
     def resize_img(img, size, preserve_range=True):
         return transform.resize(img, size, preserve_range=False)
 
-    @staticmethod
     def shift_img(img, dims, shift_values, randomize=True):
         """
             @descr:

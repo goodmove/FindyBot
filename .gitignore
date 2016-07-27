@@ -7,11 +7,12 @@ main_copy.py
 test*
 photos
 old_photos
-account
+account.py
+ids.py
 token
 Ivan_3friends
 vk_friends*
-ids
 samples
 data
 cache_photos
+src/image_processing/facepp
