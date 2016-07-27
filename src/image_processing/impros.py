@@ -4,10 +4,10 @@ from skimage.transform import pyramid_gaussian
 from skimage import transform
 import matplotlib as mpl
 import numpy as np
+import requests
 import random
 import cv2
 import os
-import requests
 
 class ImageProcessor(object):
     def __init__(
@@ -36,7 +36,7 @@ class ImageProcessor(object):
         face = ImageProcessor.detect_face(path=path, img=img)
 
         if len(face) == 0:
-            print('No face detected')
+            # print('No face detected')
             return tuple()
 
         if img is None:
@@ -102,7 +102,7 @@ class ImageProcessor(object):
             print('Couldn\'t open file. Path: ', path)
             return tuple()
 
-        faces = face_cascade.detectMultiScale(img, 1.3, 4)
+        faces = face_cascade.detectMultiScale(img, 1.22, 6)
 
         # if no faces found or there are too many, return empty tuple
         if len(faces) != 1:
@@ -111,10 +111,10 @@ class ImageProcessor(object):
         return faces[0]
 
     @staticmethod
-    def detect_eyes(img, visualize=False):
+    def detect_eyes(img, clf, visualize=False):
         eye_cascade = cv2.CascadeClassifier();
 
-        if not eye_cascade.load(CONSTANTS['eye_clf']):
+        if not eye_cascade.load(clf):
             print('Couldn\'t load eye classifier xml')
             return;
 
@@ -150,7 +150,8 @@ class ImageProcessor(object):
 
         return smiles
 
-    def detect_nose(self, img, eyes_rect, visualize=False):
+    @staticmethod
+    def detect_nose(img, eyes_rect, visualize=False):
         """
             @descr:
                 approximates nose position by finding eyeballs and rotating image,
@@ -160,9 +161,10 @@ class ImageProcessor(object):
                 eyes_rect - (ndarray); [x, y, w, h] for rectangle, which localizes eyes
         """
         _eyes_rect = (eyes_rect[0], eyes_rect[1], eyes_rect[2], eyes_rect[3])
-        return self._detect_nose(img, _eyes_rect, self.detect_eyeballs(img, _eyes_rect, visualize), visualize=visualize)
+        return ImageProcessor._detect_nose(img, _eyes_rect, ImageProcessor.detect_eyeballs(img, _eyes_rect, visualize), visualize=visualize)
 
-    def detect_eyeballs(self, img, eyes_rect, visualize=False):
+    @staticmethod
+    def detect_eyeballs(img, eyes_rect, visualize=False):
         """
             @descr:
                 finds eyeballs by applying DoG and looking for local maxima inside eyes_rect
@@ -173,6 +175,8 @@ class ImageProcessor(object):
 
         left_blob = det_hlp.filter_blobs(det_hlp.show_eyeballs(left_eye), w/2, h, left_eye)
         right_blob = det_hlp.filter_blobs(det_hlp.show_eyeballs(right_eye), w/2, h, right_eye)
+        if left_blob is None or right_blob is None:
+            return None
 
         lx, rx = left_blob[1], right_blob[1] + w/2
         ly, ry = left_blob[0], right_blob[0]
@@ -183,12 +187,15 @@ class ImageProcessor(object):
 
         return ((lx, ly), (rx, ry), eye_vector)
 
-    def _detect_nose(self, img, eyes_rect, eyeballs, visualize=False):
+    @staticmethod
+    def _detect_nose(img, eyes_rect, eyeballs, visualize=False):
         """
             @args:
                 eyeballs - (tuple);  contains (x, y) for left and right eyeballs
                                     and normalized direction vector for eyeballs
         """
+        if eyeballs is None:
+            return None
         x, y, w, h = eyes_rect
         leye, reye, eye_vector = eyeballs
         norm_vector = np.array([-eye_vector[1], eye_vector[0]]) # (x, y) -> direction vector for nose normalized
@@ -207,7 +214,7 @@ class ImageProcessor(object):
             nose = mpl.patches.Rectangle((X, Y), w/3, height, fill=False)
             det_hlp.visualize_nose(dst, nose)
 
-        return (X, Y, w/3, height)
+        return (X, Y, w/3, height, deg)
 
     @staticmethod
     def crop(img, dims):
@@ -236,13 +243,9 @@ class ImageProcessor(object):
             )
         if filename is not None:
             response = requests.post("https://apicloud-facerect.p.mashape.com/process-file.json",
-                params={
-                    "image": open(filename, mode="r"),
-                    'features': features
-                },
-                headers={
-                    "X-Mashape-Key": "KAYR0pJ7v4mshZv89eZehTaFHEH5p1aHcH6jsnv2HKQQP0mqry"
-                }
+                files={ "image": open(filename, mode="rb") },
+                data={ 'features': features },
+                headers={ "X-Mashape-Key": "KAYR0pJ7v4mshZv89eZehTaFHEH5p1aHcH6jsnv2HKQQP0mqry" }
             )
         try:
             json = response.json()
@@ -273,7 +276,7 @@ class ImageProcessor(object):
 
     @staticmethod
     def resize_img(img, size, preserve_range=True):
-        return transform.resize(img, size, preserve_range=preserve_range)
+        return transform.resize(img, size, preserve_range=False)
 
     @staticmethod
     def shift_img(img, dims, shift_values, randomize=True):
@@ -288,3 +291,13 @@ class ImageProcessor(object):
         _dy = random.randint(-dy, dy) if randomize else dy
         x, y = x+_dx, y+_dy
         return img[y:y+h, x:x+w]
+
+    @staticmethod
+    def draw_rect(img, dims):
+        x,y,w,h = dims
+        cv2.rectangle(img,(x,y),(x+w,y+h),(0,255,0),2)
+        return img
+
+    @staticmethod
+    def test():
+        print('works')

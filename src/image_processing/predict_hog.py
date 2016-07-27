@@ -28,28 +28,43 @@ def compute_hog(img):
                     transform_sqrt=CONSTANTS['transform_sqrt']
                     )
 
-def predict_hog(path):
+def predict_hog(path=None, link=None):
     """
         given an image, makes predictions on user_id using HOG features extractor
     """
+    print('inside hog')
     svm_hog_clf = joblib.load(CONSTANTS['svm_hog_clf_path'])
-    face_img = get_face(path)
-    if len(face_img) == 0:
+    # face_img = get_face(path)
+    faces = impros.get_faces(link=link, filename=path)
+    print(faces)
+    if faces is None or len(faces) == 0:
+        return []
         return {
             'response': 'failure',
-            'data': None
+            'data': None,
+            'msg': 'No face detected'
         }
-    hog_feature = compute_hog(face_img)
-    id = -1;
-    try:
-        id = svm_hog_clf.predict(hog_feature.reshape(1,-1))
-    except:
-        print('Error while extracting HOG feature vector')
-        return {
-            'response': 'failure',
-            'data': None
-        }
-    return {
-        'response': 'success',
-        'data': id
-    }
+
+    ids = []
+    for face in faces:
+        x,y,w,h = face['x'], face['y'], face['width'], face['height']
+        face_img = cv2.imread(path, 0)
+        face_img = impros.resize_img(face_img[y:y+h, x:x+w], CONSTANTS['resize_values'])
+        hog_feature = compute_hog(face_img)
+        id = -1;
+        try:
+            id = svm_hog_clf.predict(hog_feature.reshape(1,-1))
+        except:
+            print('Error while extracting HOG feature vector')
+            continue
+            # return {
+            #     'response': 'failure',
+            #     'data': None,
+            #     'msg': 'Couldn\'t extract HOG feature'
+            # }
+        ids.append(id)
+    return ids
+    # return {
+    #     'response': 'success',
+    #     'data': id
+    # }
