@@ -97,16 +97,21 @@ class PhotoDownloader(object):
 
 			if 'error' in request: continue
 			photos = request['response'][1:]
-			all_sizes = [photo['sizes'] for photo in photos]
-			links = {}
-			for sizes in all_sizes:
-				for size in sizes:
+			data = []
+			for photo in photos:
+				for size in photo['sizes']:
 					if size['type'] is photo_type:
-						links[size['src']] = '{0}{1}x{2}'.format(photo_type, size['width'], size['height'])
-			for pid, (link, size) in enumerate(links.items()):
-				self.download(	thread_count, show_thread_count, link, ipath, uid, pid, size, 
-								file_format, check_face, face_landmarks, keep_old, displacement,
-								extend, crop, resize)
+						data.append(
+							{
+								'link': size['src'],
+								'size': '{0}{1}x{2}'.format(photo_type, size['width'], size['height']),
+								'pid': photo['id'],
+							}
+						)
+			for photo in data:
+				self.download(	thread_count, show_thread_count, photo['link'], ipath, uid, photo['pid'],
+								photo['size'], file_format, check_face, face_landmarks, keep_old, 
+								displacement, extend, crop, resize)
 		print('\ndone :)')
 
 	def download(self, thread_count, show_thread_count, *args):
@@ -144,11 +149,12 @@ def download(	link, path, uid, pid, size, fmt, check_face, face_landmarks,
 	name = '{}/{}original{}{}{}'.format(path, uid, pid, size, fmt)
 	if not check_face:
 		try: url.urlretrieve(link, name)
-		except: return 
+		except: print('\rproblem at downloading '.format(name)) 
+		return
 
 	faces = imp.get_faces(link=link)
 	if len(faces) == 0:
-		print('\rno faces, skipping')
+		# print('\rno faces, skipping')
 		if not keep_old and os.path.isfile(name):
 			os.remove(name)
 		return
@@ -170,6 +176,7 @@ def download(	link, path, uid, pid, size, fmt, check_face, face_landmarks,
 		kx = ky = 1.
 		if extend:
 			x, y, w, h, dx, dy = extend_img(imw, imh, x, y, w, h, displacement=displacement)
+		faceimg = img
 		if crop:
 			faceimg = imp.crop(img, (x, y, w, h))
 		if resize:
@@ -180,24 +187,27 @@ def download(	link, path, uid, pid, size, fmt, check_face, face_landmarks,
 			'user_id':	uid,
 			'photo_id':	pid,
 			'face_id':	fid,
-			'x':		(x+dx)*kx
-			'y':		(y+dy)*ky
-			'width':	(w-2*dx)*kx
-			'height':	(h-2*dy)*ky
+			'x':		(x+dx)*kx,
+			'y':		(y+dy)*ky,
+			'width':	(w-2*dx)*kx,
+			'height':	(h-2*dy)*ky,
 			'features': face['features']
 		}
-		if crop:	
+		if crop:
 			imwrite(fim_name, faceimg)
 		else:
 			rect(img, x, y, w, h)
 			features = face.get('features')
 			if features is None: continue
 			eyes = features.get('eyes')
-			for eye in eyes:
-				rect(faceimg, eye['x'], eye['y'], eye['width'], eye['height'], color=(255, 0, 0))
+			if eyes is not None:
+				for eye in eyes:
+					rect(faceimg, eye['x'], eye['y'], eye['width'], eye['height'], color=(255, 0, 0))
 			nose = features.get('nose')
+			if nose is not None:
 				rect(faceimg, nose['x'], nose['y'], nose['width'], nose['height'], color=(0, 255, 255))
 			mouth = features.get('mouth')
+			if mouth is not None:
 				rect(faceimg, mouth['x'], mouth['y'], mouth['width'], mouth['height'], color=(0, 0, 255))
 		f.write('{}\n'.format(face_info))
 	f.close()
