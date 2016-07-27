@@ -1,24 +1,16 @@
-from src.bot.bot import *
-from time import sleep
+from telegram.ext import Updater, CommandHandler, MessageHandler, Filters
+from src.bot.commands import *
+import telegram
 
-# TODO:
-# [DONE] implement Message(id, usr_id, chat_id, text, type), User(id, first_name, last_name), Chat(id, type) classes
-# implement Listener and Sender classes
-# [DONE] implement Timer class
-# implement Classificator
+api_token = "233106548:AAGLNN02Q2YuHV9g8TvRWve0-m7WS8I0350"
 
-listener = None
+bot = Updater(api_token)
+dispatcher = bot.dispatcher
 
-def init_bot(upd_interval):
-    url = "https://api.telegram.org/bot"
-    api_token = "233106548:AAGLNN02Q2YuHV9g8TvRWve0-m7WS8I0350"
-    global listener
-    listener = Listener(url, api_token)
-    listener.start(upd_interval)
+photo_handler = MessageHandler([Filters.photo], find_user)
+dispatcher.add_handler(photo_handler)
 
+for cmd_label, cmd_ref, pass_args in commands_list:
+    dispatcher.add_handler(CommandHandler(cmd_label, cmd_ref, pass_args=pass_args))
 
-init_bot(1.0)
-
-
-while listener.is_listening:
-    sleep(0.05)
+bot.start_polling(poll_interval=0.0)

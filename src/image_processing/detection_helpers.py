@@ -23,24 +23,33 @@ def show_eyeballs(work_im):
 
     image = work_im - dilated
 
-    blobs_dog = blob_dog(image, min_sigma=5, max_sigma=10, threshold=.6)
+    blobs_dog = None
+    try:
+        blobs_dog = blob_dog(image, min_sigma=5, max_sigma=10, threshold=.6)
+    except:
+        return None
+    if blobs_dog.shape[0] == 0 or blobs_dog.shape[0] == 0:
+        return None
     blobs_dog[:, 2] = blobs_dog[:, 2] * sqrt(2)
 
     return blobs_dog
 
 def dist(p1, p2):
     res = sqrt((p1[0] - p2[0])**2 + (p1[1] - p2[1])**2)
-    return res if res > 0 else 10 ** (-4)
+    if res == 0:
+        print('Watch out: distance is 0!')
+    return res if res > 0 else 10 ** (-6)
 
 def cof(blob, w, h, img):
     y, x, sigma = blob
     R = sigma * sqrt(2)
     max = (0.2126 + 0.7152 + 0.0722)*255
     intensity = max - img[y,x]
-
     return intensity * R / dist((x,y), (w/2,h/2))
 
 def filter_blobs(blobs, w, h, img):
+    if blobs is None:
+        return None;
     scores = [(ind, cof(blob, w, h, img)) for ind, blob in enumerate(blobs)]
     return blobs[max(scores, key=lambda s: s[1])[0]]
 
