@@ -119,14 +119,13 @@ def getRequest(method, **params):
 			return getRequest(method, params)
 	return j
 
-def findFriends(id=None, depth=1, file_name='ids.py', algorithm='bfs', keep_old=False):
+def findFriends(id=None, depth=1, file_name='ids.py', keep_old=False):
 	"""
-		finds friends using depth-first or breadth-first algorithm
+		finds friends using breadth-first algorithm
 		@args
 			id – (int). id of user whose friends to search
 			depth – (int). How deep in friends to search (e.g. for friends of friends depth = 2)
 			file_name – (str). Name of a file to write found ids in
-			algorithm – (str). 'bfs' or 'dfs'
 	"""
 	if id is None:
 		if 'id' in account:
