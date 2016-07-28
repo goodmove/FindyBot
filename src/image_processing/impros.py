@@ -77,7 +77,7 @@ def detect_faces(path=None, img=None, count=None):
         print('Couldn\'t load face classifier xml')
         return [];
 
-    faces = face_cascade.detectMultiScale(img, 1.22, 6)
+    faces = face_cascade.detectMultiScale(img, 1.25, 5)
     # if no faces found or there are too many, return empty tuple
     if count is None:
         return faces

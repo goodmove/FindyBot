@@ -50,6 +50,7 @@ def breed_images(path, face_rect, randomize, csvfile):
 
     resize_values = CONFIG['hog_conf']['resize_values']
     num_of_shifts = CONFIG['hog_conf']['num_of_shifts']
+    user_id = path.split('/')[-2]
     x,y,w,h,dx,dy = face_rect
 
     for n in range(num_of_shifts):
@@ -74,6 +75,11 @@ def prep_data(root, randomize=True):
     with open(hog_data_path, 'a') as csvfile:
         for dir in os.listdir(root):
             if os.path.isdir(root+'/'+dir):
+                if len(os.listdir(root+'/'+dir)) < 8:
+                    print('Removed: '+root+'/'+dir)
+                    shutil.rmtree(root+'/'+dir)
+                    continue
+                print(root+'/'+dir)
                 for fn in os.listdir(root+'/'+dir):
                     path = root+'/'+dir+'/'+fn
                     if os.path.isfile(path) and '_' not in fn:
@@ -113,4 +119,3 @@ def predict(path=None, link=None):
             continue
         ids.append(id)
     return ids
-

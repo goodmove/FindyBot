@@ -1,6 +1,7 @@
 from src.vkapi.vkauth import VKAuth
 import requests
 import os.path
+import time
 
 try:
 	from account import ACCOUNT

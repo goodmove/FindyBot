@@ -57,8 +57,8 @@ grid1 = {
 }
 grid2 = {
     'kernel': ['rbf'],
-    'gamma': np.power(2.0, np.arange(-10, 3)),
-    'C': np.power(10.0, np.arange(-2, 6))
+    'gamma': np.power(2.0, np.arange(-8, 3)),
+    'C': np.power(10.0, np.arange(-1, 6))
 }
 
 train_hog([grid2])
