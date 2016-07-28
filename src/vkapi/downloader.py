@@ -8,10 +8,11 @@ class Downloader(object):
 	NO_FILTER = 0
 	ONE_FACE = 1
 	ANY = 2
-	def __init__(self, max_threads=10):
+	def __init__(self, max_threads=10, finish=None):
 		self.nthreads = 0
 		self.max_threads = max_threads
 		self.queue = [] # list of *args tuples for __download
+		self.finish = finish
 
 	def push_download(self, *args, **kwargs):
 		self.queue.append((args, kwargs))
@@ -25,6 +26,9 @@ class Downloader(object):
 		while self.nthreads < self.max_threads and len(self.queue) > 0:
 			args, kwargs = self.queue.pop(0)
 			self._download(*args, **kwargs)
+		if self.nthreads is 0 and len(self.queue) is 0:
+			if self.finish:
+				self.finish()
 
 	def _download(self, *args, **kwargs):
 		t = threading.Thread(	target=self.__download, 

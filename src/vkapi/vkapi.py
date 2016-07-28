@@ -46,7 +46,10 @@ def checkAccount(*args):
 	for a in args:
 		if not a in account:
 			modified = True
-			account[a] = input('please give me your {}:'.format(a))
+			if a is 'permissions':
+				account[a] = input('please give me your {}:'.format(a)).split(',')
+			else:
+				account[a] = input('please give me your {}:'.format(a))
 	if modified:
 		updateAccountFile()
 
@@ -74,7 +77,7 @@ def auth(f=False):
 		Authorizes using the file 'account.py'. Asks user for account info if it's not enough
 	"""
 	checkAccount('permissions', 'app_id', 'api_v')
-	if not checkToken() and not f:
+	if checkToken() and not f:
 		print('Your token is still working, no need to authorize.')
 		print('Pass f=True argument if you want to force authorization')
 		return
